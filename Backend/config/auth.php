@@ -1,0 +1,43 @@
+<?php
+
+return [
+
+    'defaults' => [
+        'guard' => env('AUTH_GUARD', 'api'), // Usamos 'api' como predeterminado
+        'passwords' => env('AUTH_PASSWORD_BROKER', 'usuarios'),
+    ],
+
+    'guards' => [
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+        'api' => [
+            'driver' => 'sanctum',
+            'provider' => 'usuarios',
+        ],
+    ],
+
+    'providers' => [
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+        'usuarios' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Usuario::class,
+        ],
+    ],
+
+    'passwords' => [
+        'usuarios' => [
+            'provider' => 'usuarios',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+    ],
+
+    'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+];

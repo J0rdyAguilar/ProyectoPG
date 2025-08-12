@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base para tipografía y fondo */
+@layer base {
+  html, body, #root {
+    @apply bg-bg text-ink min-h-screen;
+  }
+  ::placeholder {
+    @apply text-ink-muted;
+  }
+}
+
+/* Utilidades reusables */
+@layer components {
+  /* Botones */
+  .btn-primary {
+    @apply px-4 py-2 rounded-xl2 bg-primary text-white hover:bg-primary-700 shadow-soft;
+  }
+  .btn-ghost {
+    @apply px-3 py-1.5 rounded-lg border border-soft bg-white text-ink hover:border-primary hover:text-primary;
+  }
+
+  /* Tarjetas */
+  .card {
+    @apply bg-card border border-soft rounded-xl2 shadow-soft;
+  }
+
+  /* Campos de formulario */
+  .input {
+    @apply w-full rounded-xl2 border border-soft bg-white px-4 py-3 text-ink 
+           placeholder:text-ink-muted 
+           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary;
+  }
+  .select {
+    @apply w-full rounded-xl2 border border-soft bg-white px-4 py-3 text-ink 
+           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary;
+  }
+  .textarea {
+    @apply w-full rounded-xl2 border border-soft bg-white px-4 py-3 text-ink 
+           placeholder:text-ink-muted 
+           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary;
+  }
+
+  /* Etiquetas visuales */
+  .badge {
+    @apply inline-block px-2.5 py-1 rounded-lg bg-primary-50 text-primary-800 text-[13px] font-medium border border-primary-200;
+  }
+
+  /* Sidebar */
+  .sidebar-item {
+    @apply w-full flex items-center gap-3 px-4 py-3 rounded-xl2 text-ink hover:bg-primary-50 hover:text-primary-700;
+  }
+  .sidebar-item--active {
+    @apply bg-primary-100 text-primary-800 border-l-4 border-primary-600 font-medium;
+  }
+
+  /* Tablas */
+  .table-wrap {
+    @apply overflow-hidden rounded-xl2 border border-soft bg-card shadow-soft;
+  }
+  .thead {
+    @apply bg-slate-50 text-ink-muted;
+  }
+  .th {
+    @apply px-4 py-3 text-left text-sm font-semibold;
+  }
+  .td {
+    @apply px-4 py-3 text-ink;
+  }
+}
