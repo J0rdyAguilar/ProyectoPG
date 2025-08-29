@@ -2,11 +2,12 @@
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
+    container: { center: true, padding: "1rem" },
     extend: {
       colors: {
         bg: "#ffffff",
         card: "#ffffff",
-        soft: "#d1d5db",   // borde visible
+        soft: "#d1d5db", // borde suave visible
         primary: {
           DEFAULT: "#16a34a",
           50:  "#ecfdf5",

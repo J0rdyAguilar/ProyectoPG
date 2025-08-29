@@ -10,6 +10,7 @@ export default function NuevaEmpleado() {
   const [deps, setDeps] = useState([]);
   const [puestos, setPuestos] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [posiblesJefes, setPosiblesJefes] = useState([]);
 
   const [f, setF] = useState({
     nombre: "",
@@ -20,6 +21,7 @@ export default function NuevaEmpleado() {
     direccion: "",
     dependencia_id: "",
     puesto_id: "",
+    id_jefe: "",
     usuario: { nombre: "", usuario: "", contrasena: "", rol_id: "" },
   });
 
@@ -28,32 +30,79 @@ export default function NuevaEmpleado() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
+  // ---- helper: cargar puestos por dependencia (con fallback) ----
+  const loadPuestosByDep = async (depId) => {
+    if (!depId) {
+      setPuestos([]);
+      return;
+    }
+    try {
+      // 1) Backend filtra por query param
+      const r = await api.get("/puestos", { params: { dependencia_id: depId } });
+      if (Array.isArray(r.data)) {
+        setPuestos(r.data);
+        return;
+      }
+      // si no llega array, sigue a fallback
+    } catch {
+      // ignoramos error para fallback
+    }
+    // 2) Fallback: traer todos y filtrar en cliente
+    try {
+      const rAll = await api.get("/puestos");
+      const only = (rAll.data || []).filter(
+        (p) =>
+          String(p.dependencia_id) === String(depId) ||
+          String(p?.dependencia?.id) === String(depId)
+      );
+      setPuestos(only);
+    } catch {
+      setPuestos([]);
+    }
+  };
+
+  // Carga catálogos base (sin puestos; los cargamos al elegir dependencia)
   useEffect(() => {
     setBusy(true);
-    Promise.all([api.get("/dependencias"), api.get("/puestos"), api.get("/roles")])
-      .then(([d, p, r]) => {
-        setDeps(d.data);
-        setPuestos(p.data);
-        setRoles(r.data);
+    Promise.all([
+      api.get("/dependencias"),
+      api.get("/roles"),
+      api.get("/posibles-jefes"),
+    ])
+      .then(([d, r, j]) => {
+        setDeps(d.data || []);
+        setRoles(r.data || []);
+        setPosiblesJefes(j.data || []);
       })
       .catch(() => setErr("No se pudieron cargar los catálogos."))
       .finally(() => setBusy(false));
   }, []);
 
+  // Cuando cambia la dependencia, limpio puesto y cargo los puestos ligados
+  useEffect(() => {
+    setF((s) => ({ ...s, puesto_id: "" }));
+    if (f.dependencia_id) loadPuestosByDep(f.dependencia_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.dependencia_id]);
+
   const on = (k, v) => setF((s) => ({ ...s, [k]: v }));
-  const onU = (k, v) =>
-    setF((s) => ({ ...s, usuario: { ...s.usuario, [k]: v } }));
+  const onU = (k, v) => setF((s) => ({ ...s, usuario: { ...s.usuario, [k]: v } }));
 
   const submit = async (e) => {
     e.preventDefault();
-    setErr(""); setOk("");
+    setErr("");
+    setOk("");
     try {
       setLoading(true);
       await api.post("/empleados", { ...f, USUARIO_INGRESO: 1 });
       setOk("Empleado creado con éxito");
       setTimeout(() => nav("/empleados", { replace: true }), 700);
-    } catch (e) {
-      setErr(e?.response?.data?.message || e?.response?.data?.error || "Error al crear empleado");
+    } catch (e2) {
+      setErr(
+        e2?.response?.data?.message ||
+          e2?.response?.data?.error ||
+          "Error al crear empleado"
+      );
     } finally {
       setLoading(false);
     }
@@ -64,70 +113,62 @@ export default function NuevaEmpleado() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 grid place-items-center">
+          <div className="w-10 h-10 rounded-xl2 bg-primary text-white grid place-items-center">
             <UserPlus size={18} />
           </div>
           <div>
             <h1 className="text-2xl font-semibold">Registrar nuevo empleado</h1>
-            <p className="text-gray-400 text-sm">
+            <p className="text-ink-muted text-sm">
               Completa los datos del colaborador y su usuario de acceso.
             </p>
           </div>
         </div>
 
-        <Link
-          to="/empleados"
-          className="h-10 px-4 rounded-xl bg-soft hover:bg-soft/80 text-sm inline-flex items-center gap-2"
-        >
+        <Link to="/empleados" className="btn-ghost inline-flex h-10 items-center gap-2">
           <ArrowLeft size={16} /> Volver
         </Link>
       </div>
 
       {/* Alerts */}
-      {err && (
-        <div className="border border-rose-500/30 bg-rose-500/10 text-rose-200 px-4 py-2 rounded-xl">
-          {err}
-        </div>
-      )}
-      {ok && (
-        <div className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 px-4 py-2 rounded-xl">
-          {ok}
-        </div>
-      )}
+      {err && <div className="card p-3 border-red-200 bg-red-50 text-red-700">{err}</div>}
+      {ok &&  <div className="card p-3 border-emerald-200 bg-emerald-50 text-emerald-700">{ok}</div>}
 
-      {/* Card */}
-      <form onSubmit={submit} className="bg-card border border-soft rounded-2xl p-6 space-y-6">
+      {/* Form card */}
+      <form onSubmit={submit} className="card p-6 space-y-6">
         {/* Datos del empleado */}
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Datos del empleado</h2>
+          <h2 className="text-lg font-semibold">Datos del empleado</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Nombre">
-              <Input value={f.nombre} onChange={(e) => on("nombre", e.target.value)} />
+              <Input disabled={loading} value={f.nombre} onChange={(e) => on("nombre", e.target.value)} />
             </Field>
+
             <Field label="Apellido">
-              <Input value={f.apellido} onChange={(e) => on("apellido", e.target.value)} />
+              <Input disabled={loading} value={f.apellido} onChange={(e) => on("apellido", e.target.value)} />
             </Field>
 
             <Field label="Identificación / DPI">
-              <Input value={f.numero_identificacion} onChange={(e) => on("numero_identificacion", e.target.value)} />
+              <Input disabled={loading} value={f.numero_identificacion} onChange={(e) => on("numero_identificacion", e.target.value)} />
             </Field>
+
             <Field label="Fecha de nacimiento">
-              <Input type="date" value={f.fecha_nacimiento} onChange={(e) => on("fecha_nacimiento", e.target.value)} />
+              <Input type="date" disabled={loading} value={f.fecha_nacimiento} onChange={(e) => on("fecha_nacimiento", e.target.value)} />
             </Field>
 
             <Field label="Celular">
-              <Input value={f.numero_celular} onChange={(e) => on("numero_celular", e.target.value)} />
+              <Input disabled={loading} value={f.numero_celular} onChange={(e) => on("numero_celular", e.target.value)} />
             </Field>
+
             <Field label="Dirección" className="md:col-span-2">
-              <Input value={f.direccion} onChange={(e) => on("direccion", e.target.value)} />
+              <Textarea disabled={loading} value={f.direccion} onChange={(e) => on("direccion", e.target.value)} rows={2} />
             </Field>
 
             <Field label="Dependencia">
               <Select
+                disabled={busy || loading}
                 value={f.dependencia_id}
                 onChange={(e) => on("dependencia_id", e.target.value)}
-                disabled={busy}
               >
                 <option value="">Selecciona una dependencia</option>
                 {deps.map((d) => (
@@ -138,13 +179,34 @@ export default function NuevaEmpleado() {
 
             <Field label="Puesto">
               <Select
+                disabled={busy || loading || !f.dependencia_id}
                 value={f.puesto_id}
                 onChange={(e) => on("puesto_id", e.target.value)}
-                disabled={busy}
               >
-                <option value="">Selecciona un puesto</option>
+                <option value="">
+                  {!f.dependencia_id
+                    ? "Selecciona una dependencia primero"
+                    : puestos.length
+                      ? "Selecciona un puesto"
+                      : "No hay puestos para esta dependencia"}
+                </option>
                 {puestos.map((p) => (
                   <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Jefe inmediato" className="md:col-span-2">
+              <Select
+                disabled={busy || loading}
+                value={f.id_jefe}
+                onChange={(e) => on("id_jefe", e.target.value)}
+              >
+                <option value="">Sin jefe asignado</option>
+                {posiblesJefes.map((jefe) => (
+                  <option key={jefe.id} value={jefe.id}>
+                    {jefe.nombre_completo}
+                  </option>
                 ))}
               </Select>
             </Field>
@@ -155,17 +217,20 @@ export default function NuevaEmpleado() {
 
         {/* Datos del usuario */}
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Datos del usuario</h2>
+          <h2 className="text-lg font-semibold">Datos del usuario</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Nombre (persona)">
               <Input
+                disabled={loading}
                 value={f.usuario.nombre}
                 onChange={(e) => onU("nombre", e.target.value)}
               />
             </Field>
+
             <Field label="Usuario (login)">
               <Input
+                disabled={loading}
                 value={f.usuario.usuario}
                 onChange={(e) => onU("usuario", e.target.value)}
               />
@@ -174,6 +239,7 @@ export default function NuevaEmpleado() {
             <Field label="Contraseña">
               <Input
                 type="password"
+                disabled={loading}
                 value={f.usuario.contrasena}
                 onChange={(e) => onU("contrasena", e.target.value)}
               />
@@ -181,9 +247,9 @@ export default function NuevaEmpleado() {
 
             <Field label="Rol">
               <Select
+                disabled={busy || loading}
                 value={f.usuario.rol_id}
                 onChange={(e) => onU("rol_id", e.target.value)}
-                disabled={busy}
               >
                 <option value="">Selecciona un rol</option>
                 {roles.map((r) => (
@@ -196,19 +262,12 @@ export default function NuevaEmpleado() {
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="h-11 px-5 rounded-xl bg-primary text-white inline-flex items-center gap-2 hover:bg-primary/90 disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className="btn-primary inline-flex items-center gap-2 h-11">
             <Save size={18} />
             {loading ? "Guardando..." : "Guardar"}
           </button>
 
-          <Link
-            to="/empleados"
-            className="h-11 px-5 rounded-xl bg-soft inline-flex items-center hover:bg-soft/80"
-          >
+          <Link to="/empleados" className="btn-ghost h-11 inline-flex items-center gap-2">
             Cancelar
           </Link>
         </div>
@@ -222,26 +281,20 @@ export default function NuevaEmpleado() {
 function Field({ label, className = "", children }) {
   return (
     <label className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-sm text-gray-400">{label}</span>
+      <span className="text-sm font-medium text-ink">{label}</span>
       {children}
     </label>
   );
 }
 
-function Input(props) {
-  return (
-    <input
-      {...props}
-      className={`h-11 px-3 rounded-xl bg-[#0b1220] border border-soft outline-none focus:border-primary/60 ${props.className || ""}`}
-    />
-  );
+function Input({ className = "", ...props }) {
+  return <input {...props} className={`input ${className}`} />;
 }
 
-function Select(props) {
-  return (
-    <select
-      {...props}
-      className={`h-11 px-3 rounded-xl bg-[#0b1220] border border-soft outline-none focus:border-primary/60 ${props.className || ""}`}
-    />
-  );
+function Textarea({ className = "", ...props }) {
+  return <textarea {...props} className={`textarea ${className}`} />;
+}
+
+function Select({ className = "", ...props }) {
+  return <select {...props} className={`select ${className}`} />;
 }

@@ -11,11 +11,31 @@ export default function Empleados() {
     http.get("/empleados").then((r) => setData(r.data));
   }, []);
 
+  const handleDesactivar = async (id) => {
+    if (!confirm("¿Estás seguro de que quieres desactivar este empleado?")) {
+      return;
+    }
+
+    try {
+      await http.put(`/empleados/${id}/desactivar`);
+      // Remover el empleado de la lista local (ya no aparecerá en la tabla)
+      setData((prevData) => prevData.filter((emp) => emp.id !== id));
+      alert("Empleado desactivado correctamente");
+    } catch (error) {
+      alert("Error al desactivar el empleado");
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    http.get("/empleados").then((r) => setData(r.data));
+  }, []);
+
   const rows = useMemo(() => {
     const term = q.toLowerCase().trim();
     if (!term) return data;
     return data.filter((e) =>
-      [e.nombre, e.apellido, e.numero_identificacion, e.dependencia, e.puesto, e.rol]
+      [e.nombre, e.apellido, e.numero_identificacion, e.dependencia, e.puesto, e.rol, e.jefe]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(term))
     );
@@ -35,13 +55,13 @@ export default function Empleados() {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Buscar por nombre, DPI, dependencia..."
+        placeholder="Buscar por nombre, DPI, dependencia, jefe..."
         className="input"
       />
 
       {/* Tabla */}
       <div className="table-wrap">
-        <table className="min-w-[980px] w-full">
+        <table className="min-w-[1200px] w-full">
           <thead className="thead">
             <tr>
               <th className="th">ID</th>
@@ -51,7 +71,9 @@ export default function Empleados() {
               <th className="th">Dirección</th>
               <th className="th">Puesto</th>
               <th className="th">Dependencia</th>
+              <th className="th">Jefe inmediato</th>
               <th className="th">Rol</th>
+              <th className="th">Estado</th>
               <th className="th">Acciones</th>
             </tr>
           </thead>
@@ -81,21 +103,46 @@ export default function Empleados() {
                 </td>
 
                 <td className="td">
+                  {e.jefe ? (
+                    <span className="badge">{e.jefe}</span>
+                  ) : (
+                    <span className="text-ink-muted text-sm">Sin jefe</span>
+                  )}
+                </td>
+
+                <td className="td">
                   <span className="badge">{e.rol || "—"}</span>
                 </td>
 
                 <td className="td">
-                  <Link to={`/empleados/editar/${e.id}`} className="btn-ghost">
-                    Editar
-                  </Link>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                    <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-emerald-400"></span>
+                    Activo
+                  </span>
+                </td>
+
+                {/* Acciones: Editar + Desactivar con mismo estilo */}
+                <td className="td">
+                  <div className="flex items-center gap-2">
+                    <Link to={`/empleados/editar/${e.id}`} className="btn-ghost">
+                      Editar
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDesactivar(e.id)}
+                      className="btn-ghost"
+                    >
+                      Desactivar
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
 
             {!rows.length && (
               <tr>
-                <td colSpan="9" className="py-10 text-center text-ink-muted">
-                  Sin resultados
+                <td colSpan="11" className="py-10 text-center text-ink-muted">
+                Sin resultados
                 </td>
               </tr>
             )}

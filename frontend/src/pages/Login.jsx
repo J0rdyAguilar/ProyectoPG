@@ -13,87 +13,73 @@ function Login({ setToken, autenticarUsuario }) {
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
 
-  // Si ya hay token, envía directo al panel
-  /*useEffect(() => {
+  // Si ya hay token, manda al dashboard
+  useEffect(() => {
     const t = localStorage.getItem("token");
-    if (t) nav("/empleados", { replace: true });
-  }, [nav]);*/
+    if (t) nav("/dashboard", { replace: true });
+  }, [nav]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMensaje("");
-
     try {
       setLoading(true);
 
-      // 1) Login (usa .env para la URL)
       const { data } = await axios.post(`${API_URL}/api/login`, {
         usuario,
         contrasena,
       });
 
       const token = data?.token;
-      if (!token) {
-        throw new Error("El backend no devolvió 'token'.");
-      }
+      if (!token) throw new Error("El backend no devolvió 'token'.");
 
-      // 2) Guardar token y autenticar
+      // guarda token
       localStorage.setItem("token", token);
+
+      // setea opcionalmente en axios por si lo usas global
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      // callbacks opcionales
       setToken?.(token);
       await autenticarUsuario?.(token);
 
-      // 3) Redirigir (puedes cambiar a /perfil si prefieres)
-      nav("/empleados", { replace: true });
+      // redirige al dashboard
+      nav("/dashboard", { replace: true });
     } catch (err) {
-      // Mensaje de error amigable
       const apiMsg =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
-        err?.message ||
+        (typeof err?.message === "string" ? err.message : "") ||
         "Credenciales inválidas.";
       setMensaje(apiMsg);
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          padding: 24,
-          borderRadius: 16,
-          border: "1px solid #1f2937",
-          background: "#111827",
-          color: "white",
-        }}
-      >
-        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>
-          Iniciar sesión
-        </h1>
+    <div className="min-h-screen grid place-items-center bg-bg">
+      <div className="card w-full max-w-md p-6">
+        {/* Encabezado */}
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold text-primary mb-1">
+            Municipalidad de Cuilco
+          </h1>
+          <p className="text-sm text-ink-muted">Sistema de gestión interna</p>
+        </div>
+
+        <h2 className="text-xl font-semibold mb-4 text-ink">Iniciar sesión</h2>
 
         {!!mensaje && (
-          <div
-            style={{
-              marginBottom: 12,
-              fontSize: 14,
-              background: "rgba(244,63,94,.1)",
-              border: "1px solid rgba(244,63,94,.3)",
-              padding: "8px 10px",
-              borderRadius: 10,
-              color: "#fecaca",
-            }}
-          >
+          <div className="card p-3 mb-3 border-red-200 bg-red-50 text-red-700">
             {mensaje}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
-          <div>
-            <label style={{ fontSize: 13, color: "#cbd5e1" }}>Usuario</label>
+        <form onSubmit={handleSubmit} className="grid gap-3">
+          {/* Usuario */}
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-ink">Usuario</span>
             <input
               type="text"
               value={usuario}
@@ -101,81 +87,44 @@ function Login({ setToken, autenticarUsuario }) {
               required
               autoFocus
               placeholder="tu_usuario"
-              style={{
-                width: "100%",
-                height: 44,
-                borderRadius: 12,
-                border: "1px solid #1f2937",
-                background: "#0b1220",
-                color: "white",
-                padding: "0 12px",
-                outline: "none",
-              }}
+              className="input"
             />
-          </div>
+          </label>
 
-          <div>
-            <label style={{ fontSize: 13, color: "#cbd5e1" }}>Contraseña</label>
-            <div style={{ position: "relative" }}>
+          {/* Contraseña */}
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-ink">Contraseña</span>
+            <div className="relative">
               <input
                 type={show ? "text" : "password"}
                 value={contrasena}
                 onChange={(e) => setContrasena(e.target.value)}
                 required
                 placeholder="••••••••"
-                style={{
-                  width: "100%",
-                  height: 44,
-                  borderRadius: 12,
-                  border: "1px solid #1f2937",
-                  background: "#0b1220",
-                  color: "white",
-                  padding: "0 76px 0 12px",
-                  outline: "none",
-                }}
+                className="input pr-24"
               />
               <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
-                style={{
-                  position: "absolute",
-                  right: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  height: 30,
-                  padding: "0 10px",
-                  borderRadius: 8,
-                  background: "#1f2937",
-                  color: "#e5e7eb",
-                  border: "1px solid #293241",
-                  cursor: "pointer",
-                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-9 px-3 rounded-lg border border-soft bg-white text-ink hover:border-primary hover:text-primary"
               >
                 {show ? "Ocultar" : "Mostrar"}
               </button>
             </div>
-          </div>
+          </label>
 
+          {/* Botón */}
           <button
             type="submit"
             disabled={loading}
-            style={{
-              height: 44,
-              borderRadius: 12,
-              background: "#2563eb",
-              color: "white",
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
+            className="btn-primary h-11 mt-1 disabled:opacity-60"
           >
             {loading ? "Ingresando..." : "Entrar"}
           </button>
         </form>
 
-        <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>
-          Backend: <b>{API_URL}</b> — revisa que esté corriendo y el usuario exista.
+        <div className="mt-4 text-xs text-ink-muted text-center">
+          Backend: <b>{API_URL}</b> — verifica que esté corriendo y el usuario exista.
         </div>
       </div>
     </div>

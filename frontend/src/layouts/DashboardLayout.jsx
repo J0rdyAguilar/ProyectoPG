@@ -1,37 +1,64 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import {
   Menu,
+  BarChart3,
   Users,
   Layers,
   Briefcase,
   Shield,
   UserRound,
+  FileText,
   LogOut,
+  ChevronDown,
 } from "lucide-react";
-import { logout } from "@/api/auth"; // si no usas alias, usa: "../api/auth"
+import { logout } from "@/api/auth";
 
-const NavItem = ({ to, icon: Icon, label }) => (
+// Item base para ítems simples
+const NavItem = ({ to, icon: Icon, label, open }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
       clsx(
-        "flex items-center gap-3 px-4 py-3 rounded-xl2 transition",
-        isActive
-          ? "bg-primary-100 text-primary-800 border-l-4 border-primary-600 font-medium"
-          : "text-ink hover:bg-primary-50 hover:text-primary-700"
+        "sidebar-item",
+        isActive && "sidebar-item--active",
+        !open && "justify-center"
+      )
+    }
+    title={!open ? label : undefined}
+  >
+    <Icon size={20} />
+    {open && <span className="font-medium">{label}</span>}
+  </NavLink>
+);
+
+// Nuevo: Subitem visual del submenú
+const SubItem = ({ to, icon: Icon, label }) => (
+  <NavLink
+    end
+    to={to}
+    className={({ isActive }) =>
+      clsx(
+        "sidebar-subitem",
+        isActive && "sidebar-subitem--active"
       )
     }
   >
-    <Icon size={20} />
-    <span className="font-medium">{label}</span>
+    {Icon && <Icon size={16} className="mr-2" />}
+    <span>{label}</span>
   </NavLink>
 );
 
 export default function DashboardLayout() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(true); // ancho del sidebar
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Submenú: detecta si estamos en /empleados
+  const isInEmpleados = pathname.startsWith("/empleados");
+  const [openEmp, setOpenEmp] = useState(isInEmpleados);
+  useEffect(() => setOpenEmp(isInEmpleados), [isInEmpleados]);
 
   const handleLogout = async () => {
     const ok = window.confirm("¿Seguro que deseas cerrar sesión?");
@@ -49,7 +76,7 @@ export default function DashboardLayout() {
       {/* SIDEBAR */}
       <aside
         className={clsx(
-          "bg-bg border-r border-soft transition-all duration-300 p-4",
+          "bg-bg border-r border-soft transition-all duration-300 p-4 sticky top-0 h-screen hidden md:block",
           open ? "w-64" : "w-20"
         )}
       >
@@ -59,12 +86,17 @@ export default function DashboardLayout() {
             <div className="w-8 h-8 rounded-xl2 bg-primary text-white grid place-items-center font-bold">
               E
             </div>
-            {open && <span className="font-semibold text-lg">RRHH</span>}
+            {open && (
+              <span className="font-semibold text-lg whitespace-nowrap">
+                Muni de Cuilco
+              </span>
+            )}
           </div>
           <button
             className="p-2 rounded-lg hover:bg-primary-50 text-primary-700"
             onClick={() => setOpen((o) => !o)}
-            title="Toggle sidebar"
+            aria-label="Alternar sidebar"
+            title="Alternar sidebar"
           >
             <Menu size={18} />
           </button>
@@ -72,16 +104,51 @@ export default function DashboardLayout() {
 
         {/* NAV LINKS */}
         <nav className="flex flex-col gap-1">
-          <NavItem to="/empleados" icon={Users} label="Empleados" />
-          <NavItem to="/dependencias" icon={Layers} label="Dependencias" />
-          <NavItem to="/puestos" icon={Briefcase} label="Puestos" />
-          <NavItem to="/roles" icon={Shield} label="Roles" />
-          <NavItem to="/perfil" icon={UserRound} label="Perfil" />
+          {/* Dashboard */}
+          <NavItem to="/dashboard" icon={BarChart3} label="Dashboard" open={open} />
 
-          {/* Botón Cerrar sesión */}
+          {/* Carpeta: Empleados */}
+          <button
+            type="button"
+            onClick={() => setOpenEmp((v) => !v)}
+            className={clsx(
+              "sidebar-item w-full justify-between",
+              !open && "justify-center",
+              isInEmpleados && "sidebar-item--active"
+            )}
+            title={!open ? "Empleados" : undefined}
+          >
+            <span className="flex items-center gap-3">
+              <Users size={20} />
+              {open && <span className="font-medium">Empleados</span>}
+            </span>
+            {open && (
+              <ChevronDown
+                size={18}
+                className={clsx("transition-transform", openEmp && "rotate-180")}
+              />
+            )}
+          </button>
+
+          {/* Subitems de empleados */}
+          {open && openEmp && (
+            <div role="group" className="mt-1 mb-2 ml-2 rounded-xl bg-emerald-50/50 p-1">
+              <SubItem to="/empleados" label="Listado" />
+              <SubItem to="/empleados/contratos" icon={FileText} label="Contratos" />
+            </div>
+          )}
+
+          {/* Otros módulos raíz */}
+          <NavItem to="/dependencias" icon={Layers} label="Dependencias" open={open} />
+          <NavItem to="/puestos" icon={Briefcase} label="Puestos" open={open} />
+          <NavItem to="/roles" icon={Shield} label="Roles" open={open} />
+          <NavItem to="/perfil" icon={UserRound} label="Perfil" open={open} />
+
+          {/* Logout */}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl2 text-ink hover:bg-primary-50 hover:text-primary-700 transition mt-4"
+            className={clsx("sidebar-item mt-4", !open && "justify-center")}
+            title={!open ? "Cerrar sesión" : undefined}
           >
             <LogOut size={20} />
             {open && <span className="font-medium">Cerrar sesión</span>}
@@ -90,14 +157,25 @@ export default function DashboardLayout() {
       </aside>
 
       {/* MAIN */}
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* TOPBAR */}
-        <header className="h-16 border-b border-soft bg-card sticky top-0 z-10">
-          <div className="h-full px-6 flex items-center justify-between">
-            <div className="text-lg font-semibold">Dashboard</div>
+        <header className="h-16 border-b border-soft bg-card sticky top-0 z-20">
+          <div className="h-full container flex items-center justify-between">
+            <div className="flex items-center gap-3 md:gap-4">
+              {/* Toggle en móvil */}
+              <button
+                className="md:hidden p-2 rounded-lg hover:bg-primary-50 text-primary-700"
+                onClick={() => setOpen((o) => !o)}
+                aria-label="Abrir menú"
+              >
+                <Menu size={20} />
+              </button>
+              <div className="text-lg font-semibold">Dashboard</div>
+            </div>
+
             <div className="flex items-center gap-3">
               <input
-                className="bg-white border border-soft rounded-xl2 px-3 h-10 outline-none w-64 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
+                className="bg-white border border-soft rounded-xl2 px-3 h-10 outline-none w-40 md:w-64 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
                 placeholder="Buscar..."
               />
               <div className="w-9 h-9 bg-primary text-white rounded-full grid place-items-center">
@@ -108,7 +186,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* CONTENIDO */}
-        <main className="p-6 bg-bg">
+        <main className="page">
           <Outlet />
         </main>
       </div>

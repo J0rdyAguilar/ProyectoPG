@@ -3,45 +3,39 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Empleado;
-use App\Models\Puesto;
-use App\Models\Dependencia;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ejemplo de KPIs reales (ajusta según tu BD)
-        $kpis = [
-            'profit'      => 82373.21, // Puedes calcular ventas o presupuesto
-            'orders'      => 7234,     // Ejemplo: total registros de alguna tabla
-            'impressions' => "3.1M",   // Métrica ficticia
-            'targetPct'   => 75        // % de meta
+        // Totales simples
+        $totales = [
+            'empleados'  => DB::table('empleados')->count(),
+            'activos'    => DB::table('empleados')->where('ESTADO', 1)->count(),
+            'inactivos'  => DB::table('empleados')->where('ESTADO', 0)->count(),
         ];
 
-        // Ejemplo gráfico mensual
-        $chart = [
-            ['m' => 'Jan', 'v' => 320],
-            ['m' => 'Feb', 'v' => 290],
-            ['m' => 'Mar', 'v' => 360],
-            ['m' => 'Apr', 'v' => 340],
-            ['m' => 'May', 'v' => 450],
-            ['m' => 'Jun', 'v' => 380],
-            ['m' => 'Jul', 'v' => 600],
-        ];
+        // Por dependencia
+        $porDependencia = DB::table('empleados as e')
+            ->join('dependencias as d', 'd.id', '=', 'e.dependencia_id')
+            ->select('d.id', 'd.nombre as dependencia', DB::raw('COUNT(*) as total'))
+            ->groupBy('d.id', 'd.nombre')
+            ->orderByDesc('total')
+            ->get();
 
-        // Productos o métricas top (puedes poner top puestos, top dependencias, etc.)
-        $products = [
-            ['name' => 'Maneki Neko Poster', 'sold' => 1249, 'change' => +15.2],
-            ['name' => 'Echoes Necklace',    'sold' => 1145, 'change' => +13.9],
-            ['name' => 'Spiky Ring',         'sold' => 1073, 'change' => +9.5],
-            ['name' => 'Pastel Petals Poster','sold' => 1022,'change' => +2.3],
-        ];
+        // Por puesto
+        $porPuesto = DB::table('empleados as e')
+            ->join('puestos as p', 'p.id', '=', 'e.puesto_id')
+            ->select('p.id', 'p.nombre as puesto', DB::raw('COUNT(*) as total'))
+            ->groupBy('p.id', 'p.nombre')
+            ->orderByDesc('total')
+            ->get();
 
         return response()->json([
-            'kpis'     => $kpis,
-            'chart'    => $chart,
-            'products' => $products,
+            'totales'        => $totales,
+            'por_dependencia'=> $porDependencia,
+            'por_puesto'     => $porPuesto,
         ]);
     }
 }

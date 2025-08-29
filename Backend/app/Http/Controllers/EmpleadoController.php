@@ -21,6 +21,7 @@ class EmpleadoController extends Controller
                 'dependencia:id,nombre',
                 'puesto:id,nombre',
                 'usuario.rol:id,nombre',
+                'jefe:id,nombre,apellido'  // Agregar relación con jefe
             ])
             ->get();
 
@@ -36,8 +37,33 @@ class EmpleadoController extends Controller
                 'dependencia'           => optional($e->dependencia)->nombre,
                 'puesto'                => optional($e->puesto)->nombre,
                 'rol'                   => optional(optional($e->usuario)->rol)->nombre,
+                'jefe'                  => $e->jefe ? $e->jefe->nombre . ' ' . $e->jefe->apellido : null,
+                'id_jefe'               => $e->id_jefe,  // Para el frontend
             ];
         });
+    }
+
+    /**
+     * Obtener lista de posibles jefes (para select)
+     */
+    public function posiblesJefes($empleadoId = null)
+    {
+        $query = Empleado::where('ESTADO', 1)
+            ->select('id', 'nombre', 'apellido');
+
+        // Excluir al empleado actual para evitar autoreferencia
+        if ($empleadoId) {
+            $query->where('id', '!=', $empleadoId);
+        }
+
+        $empleados = $query->get()->map(function ($e) {
+            return [
+                'id' => $e->id,
+                'nombre_completo' => $e->nombre . ' ' . $e->apellido
+            ];
+        });
+
+        return response()->json($empleados);
     }
 
     /**
@@ -45,7 +71,7 @@ class EmpleadoController extends Controller
      */
     public function show($id)
     {
-        $empleado = Empleado::with(['dependencia', 'puesto', 'usuario.rol'])->find($id);
+        $empleado = Empleado::with(['dependencia', 'puesto', 'usuario.rol', 'jefe'])->find($id);
 
         if (!$empleado) {
             return response()->json(['error' => 'Empleado no encontrado'], 404);
@@ -69,6 +95,7 @@ class EmpleadoController extends Controller
             'direccion'              => 'required|string',
             'dependencia_id'         => 'required|exists:dependencias,id',
             'puesto_id'              => 'required|exists:puestos,id',
+            'id_jefe'                => 'nullable|exists:empleados,id',  // Nuevo campo
             'USUARIO_INGRESO'        => 'nullable|integer',
 
             // Datos del usuario
@@ -105,6 +132,7 @@ class EmpleadoController extends Controller
                     'usuario_id'            => $nuevoUsuario->id,
                     'dependencia_id'        => $validated['dependencia_id'],
                     'puesto_id'             => $validated['puesto_id'],
+                    'id_jefe'               => $validated['id_jefe'] ?? null,  // Nuevo campo
                     'ESTADO'                => 1,
                     'USUARIO_INGRESO'       => $validated['USUARIO_INGRESO'] ?? null,
                     'FECHA_INGRESO'         => now(),
@@ -144,6 +172,15 @@ class EmpleadoController extends Controller
             'direccion'              => 'required|string',
             'dependencia_id'         => 'required|exists:dependencias,id',
             'puesto_id'              => 'required|exists:puestos,id',
+            'id_jefe'                => [
+                'nullable',
+                'exists:empleados,id',
+                function ($attribute, $value, $fail) use ($id) {
+                    if ($value == $id) {
+                        $fail('Un empleado no puede ser jefe de sí mismo.');
+                    }
+                },
+            ],
             'rol_id'                 => 'nullable|exists:roles,id',
             'USUARIO_MODIFICA'       => 'nullable|integer',
         ]);
@@ -160,6 +197,7 @@ class EmpleadoController extends Controller
                     'direccion'             => $validated['direccion'],
                     'dependencia_id'        => $validated['dependencia_id'],
                     'puesto_id'             => $validated['puesto_id'],
+                    'id_jefe'               => $validated['id_jefe'] ?? null,  // Nuevo campo
                     'USUARIO_MODIFICA'      => $validated['USUARIO_MODIFICA'] ?? null,
                     'FECHA_MODIFICA'        => now(),
                 ]);
@@ -176,6 +214,7 @@ class EmpleadoController extends Controller
                 'dependencia:id,nombre',
                 'puesto:id,nombre',
                 'usuario.rol:id,nombre',
+                'jefe:id,nombre,apellido',
             ])->find($empleado->id);
 
             $flat = [
@@ -188,6 +227,8 @@ class EmpleadoController extends Controller
                 'dependencia'           => optional($e->dependencia)->nombre,
                 'puesto'                => optional($e->puesto)->nombre,
                 'rol'                   => optional(optional($e->usuario)->rol)->nombre,
+                'jefe'                  => $e->jefe ? $e->jefe->nombre . ' ' . $e->jefe->apellido : null,
+                'id_jefe'               => $e->id_jefe,
             ];
 
             return response()->json($flat, 200);
@@ -197,11 +238,44 @@ class EmpleadoController extends Controller
     }
 
     /**
+     * Obtener subordinados de un empleado
+     */
+    public function subordinados($id)
+    {
+        $empleado = Empleado::findOrFail($id);
+        
+        $subordinados = $empleado->subordinados()
+            ->where('ESTADO', 1)
+            ->with(['puesto:id,nombre', 'dependencia:id,nombre'])
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'nombre_completo' => $s->nombre . ' ' . $s->apellido,
+                    'puesto' => optional($s->puesto)->nombre,
+                    'dependencia' => optional($s->dependencia)->nombre,
+                ];
+            });
+
+        return response()->json($subordinados);
+    }
+
+    /**
      * Desactivar (soft) empleado
      */
     public function desactivar($id)
     {
         $empleado = Empleado::findOrFail($id);
+        
+        // Verificar si tiene subordinados activos
+        $tieneSubordinados = $empleado->subordinados()->where('ESTADO', 1)->exists();
+        
+        if ($tieneSubordinados) {
+            return response()->json([
+                'error' => 'No se puede desactivar este empleado porque tiene subordinados activos.'
+            ], 400);
+        }
+
         $empleado->ESTADO = 0;
         $empleado->FECHA_MODIFICA = now();
         $empleado->USUARIO_MODIFICA = 1; // TODO: reemplazar por el id del usuario autenticado

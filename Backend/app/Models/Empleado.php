@@ -21,6 +21,7 @@ class Empleado extends Model
         'usuario_id',
         'dependencia_id',
         'puesto_id',
+        'id_jefe',  // Campo agregado para jerarquía
         'ESTADO',
         'USUARIO_INGRESO',
         'FECHA_INGRESO',
@@ -30,6 +31,7 @@ class Empleado extends Model
 
     public $timestamps = false;
 
+    // Relaciones existentes
     public function usuario()
     {
         return $this->belongsTo(Usuario::class);
@@ -43,5 +45,27 @@ class Empleado extends Model
     public function puesto()
     {
         return $this->belongsTo(Puesto::class);
+    }
+
+    // Nuevas relaciones para jerarquía
+    public function jefe()
+    {
+        return $this->belongsTo(Empleado::class, 'id_jefe');
+    }
+
+    public function subordinados()
+    {
+        return $this->hasMany(Empleado::class, 'id_jefe');
+    }
+
+    // Métodos útiles para jerarquía
+    public function esJefe()
+    {
+        return $this->subordinados()->where('ESTADO', 1)->exists();
+    }
+
+    public function tieneJefe()
+    {
+        return !is_null($this->id_jefe);
     }
 }

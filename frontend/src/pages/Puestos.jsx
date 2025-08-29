@@ -1,13 +1,12 @@
-// src/pages/Puestos.jsx
 import { useEffect, useMemo, useState } from "react";
 import { http } from "@/api/http"; // tu instancia axios con Bearer
 import { Link } from "react-router-dom";
 
 export default function Puestos() {
-  const [data, setData]   = useState([]);
-  const [q, setQ]         = useState("");
-  const [loading, setL]   = useState(true);
-  const [err, setErr]     = useState("");
+  const [data, setData] = useState([]);
+  const [q, setQ] = useState("");
+  const [loading, setL] = useState(true);
+  const [err, setErr] = useState("");
 
   const load = async () => {
     try {
@@ -21,31 +20,34 @@ export default function Puestos() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const rows = useMemo(() => {
     const t = q.toLowerCase().trim();
     if (!t) return data;
-    return data.filter(p =>
+    return data.filter((p) =>
       [p.nombre, p.descripcion, p?.dependencia?.nombre, p.dependencia_nombre]
         .filter(Boolean)
-        .some(v => String(v).toLowerCase().includes(t))
+        .some((v) => String(v).toLowerCase().includes(t))
     );
   }, [data, q]);
 
   const desactivar = async (id) => {
     if (!confirm("¿Desactivar este puesto?")) return;
     await http.put(`/puestos/${id}/desactivar`);
-    setData(prev => prev.filter(x => x.id !== id)); // o marcar ESTADO = 0 si lo devuelves
+    setData((prev) => prev.filter((x) => x.id !== id));
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Gestión de puestos</h1>
-        {/* Si luego agregas formulario para crear: */}
-        {/* <Link to="/puestos/nuevo" className="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary/90">+ Nuevo puesto</Link> */}
+        <h1 className="text-2xl font-semibold text-ink">Gestión de puestos</h1>
+        <Link to="/puestos/nuevo" className="btn-primary">
+          + Nuevo puesto
+        </Link>
       </div>
 
       {/* Buscador */}
@@ -80,21 +82,31 @@ export default function Puestos() {
 
           <tbody className="divide-y divide-soft">
             {loading ? (
-              <tr><td colSpan="5" className="py-8 text-center text-gray-400">Cargando…</td></tr>
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-400">
+                  Cargando…
+                </td>
+              </tr>
             ) : rows.length ? (
-              rows.map(p => (
+              rows.map((p) => (
                 <tr key={p.id} className="[&>td]:px-4 [&>td]:py-3">
                   <td className="font-medium">{p.nombre}</td>
-                  <td className="max-w-[520px] truncate">{p.descripcion || "—"}</td>
+                  <td className="max-w-[520px] truncate">
+                    {p.descripcion || "—"}
+                  </td>
                   <td>
                     <span className="px-2 py-1 text-xs rounded-lg bg-soft">
                       {p?.dependencia?.nombre || p.dependencia_nombre || "—"}
                     </span>
                   </td>
                   <td>
-                    <span className={`px-2 py-1 text-xs rounded-lg ${
-                      p.ESTADO ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"
-                    }`}>
+                    <span
+                      className={`px-2 py-1 text-xs rounded-lg ${
+                        p.ESTADO
+                          ? "bg-emerald-500/15 text-emerald-300"
+                          : "bg-rose-500/15 text-rose-300"
+                      }`}
+                    >
                       {p.ESTADO ? "Activo" : "Inactivo"}
                     </span>
                   </td>
@@ -114,7 +126,11 @@ export default function Puestos() {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="5" className="py-8 text-center text-gray-400">Sin resultados</td></tr>
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-400">
+                  Sin resultados
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

@@ -40,3 +40,28 @@
 .read-the-docs {
   color: #888;
 }
+
+.sidebar-subitem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem 0.45rem 2.5rem;  /* izquierda alineada */
+  margin: 2px 0;
+  border-radius: 0.75rem;
+  font-size: 0.925rem;
+  color: #0a0f1a;
+  text-decoration: none;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.sidebar-subitem:hover {
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.sidebar-subitem--active {
+  background: rgba(5, 150, 105, 0.16);
+  font-weight: 600;
+  outline: 1px solid rgba(5, 150, 105, 0.25);
+}
+

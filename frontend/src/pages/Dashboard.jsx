@@ -1,133 +1,273 @@
-import { useEffect, useState } from "react";
-import { TrendingUp, ShoppingBag, Eye, Target } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
-// import { getDashboard } from "@/api/http";
+// frontend/src/pages/Dashboard.jsx
+import { useEffect, useMemo, useState } from "react";
+import { getDashboard } from "@/api/dashboard";
+import {
+  Users,
+  CheckCircle2,
+  XCircle,
+  PieChart as PieIcon,
+  BarChart3,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
-const mock = {
-  kpis: {
-    profit: 82373.21,
-    orders: 7234,
-    impressions: "3.1M",
-    targetPct: 75
-  },
-  chart: [
-    { m: "Jan", v: 320 }, { m: "Feb", v: 290 }, { m: "Mar", v: 360 },
-    { m: "Apr", v: 340 }, { m: "May", v: 450 }, { m: "Jun", v: 380 },
-    { m: "Jul", v: 600 }
-  ],
-  products: [
-    { name: "Maneki Neko Poster", sold: 1249, change: +15.2 },
-    { name: "Echoes Necklace", sold: 1145, change: +13.9 },
-    { name: "Spiky Ring", sold: 1073, change: +9.5 },
-    { name: "Pastel Petals Poster", sold: 1022, change: +2.3 },
-  ]
-};
+export default function Dashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-const Card = ({ children }) => (
-  <div className="bg-card border border-soft rounded-xl2 p-5">{children}</div>
-);
+  useEffect(() => {
+    (async () => {
+      try {
+        const d = await getDashboard();
+        setData(d);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-const KPI = ({ icon: Icon, label, value, sub="+3.4%" }) => (
-  <Card>
-    <div className="flex items-center justify-between">
-      <div>
-        <div className="text-sm text-gray-400">{label}</div>
-        <div className="text-2xl font-semibold mt-1">{value}</div>
-        <div className="text-emerald-400 text-sm mt-1">{sub}</div>
+  const t = data?.totales || { empleados: 0, activos: 0, inactivos: 0 };
+  const deps = data?.por_dependencia || [];
+  const puestos = data?.por_puesto || [];
+
+  // datasets para los charts
+  const donaData = useMemo(
+    () => [
+      { name: "Activos", value: Number(t.activos || 0) },
+      { name: "Inactivos", value: Number(t.inactivos || 0) },
+    ],
+    [t]
+  );
+
+  const depsData = useMemo(
+    () => deps.map(d => ({ name: d.dependencia, total: Number(d.total || 0) })),
+    [deps]
+  );
+
+  const puestosData = useMemo(
+    () => puestos.map(p => ({ name: p.puesto, total: Number(p.total || 0) })),
+    [puestos]
+  );
+
+  // paleta de colores para barras
+  const BAR_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#ef4444", "#7c3aed", "#0ea5e9"];
+
+  if (loading) {
+    return (
+      <div className="p-6 grid gap-6 animate-pulse">
+        <div className="h-8 w-48 bg-gray-200 rounded" />
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="h-28 bg-gray-100 rounded-xl border" />
+          <div className="h-28 bg-gray-100 rounded-xl border" />
+          <div className="h-28 bg-gray-100 rounded-xl border" />
+        </div>
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="h-80 bg-gray-100 rounded-xl border lg:col-span-2" />
+          <div className="h-80 bg-gray-100 rounded-xl border" />
+        </div>
       </div>
-      <div className="w-10 h-10 rounded-xl2 bg-primary/20 grid place-items-center">
-        <Icon size={20}/>
-      </div>
-    </div>
-  </Card>
-);
+    );
+  }
 
-function Ring({ pct }) {
-  const angle = Math.round((pct / 100) * 360);
-  const bg = `conic-gradient(#2563eb ${angle}deg, #1f2937 ${angle}deg)`;
   return (
-    <div className="relative w-24 h-24">
-      <div className="absolute inset-0 rounded-full" style={{ background: bg }} />
-      <div className="absolute inset-2 rounded-full bg-card grid place-items-center text-lg font-semibold">
-        {pct}%
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
       </div>
+
+      {/* Tarjetas resumen */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card
+          title="Empleados registrados"
+          value={t.empleados}
+          icon={<Users size={20} />}
+          sub="+ empleados totales"
+        />
+        <Card
+          title="Activos"
+          value={t.activos}
+          icon={<CheckCircle2 size={20} />}
+          accent="green"
+          sub="Con contrato vigente"
+        />
+        <Card
+          title="Inactivos"
+          value={t.inactivos}
+          icon={<XCircle size={20} />}
+          accent="red"
+          sub="Sin actividad"
+        />
+      </div>
+
+      {/* Sección gráficos */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Barras: Dependencias */}
+        <Panel
+          title="Empleados por dependencia"
+          icon={<BarChart3 size={18} />}
+          className="lg:col-span-2"
+        >
+          {depsData.length === 0 ? (
+            <Empty>Sin datos de dependencias</Empty>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={depsData}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 80 }} // Aumenté el margen inferior
+                  barCategoryGap="22%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    interval={0}
+                    angle={-15}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    wrapperStyle={{ paddingTop: '20px' }}
+                  />
+                  <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]}>
+                    {depsData.map((_, i) => (
+                      <Cell key={`deps-${i}`} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Panel>
+
+        {/* Dona: Activos vs Inactivos */}
+        <Panel title="Estado de empleados" icon={<PieIcon size={18} />}>
+          <div className="h-80 flex flex-col items-center justify-center">
+            <div className="w-full h-64">
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={donaData}
+                    innerRadius={60}
+                    outerRadius={85}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {donaData.map((entry, i) => (
+                      <Cell
+                        key={`dona-${i}`}
+                        fill={i === 0 ? "#16a34a" : "#e5e7eb"} // verde / gris
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => [`${v}`, "Empleados"]} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="text-sm text-ink-muted">
+              {t.activos} activos / {t.inactivos} inactivos
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      {/* Barras: Puestos */}
+      <Panel title="Empleados por puesto" icon={<BarChart3 size={18} />}>
+        {puestosData.length === 0 ? (
+          <Empty>Sin datos de puestos</Empty>
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={puestosData}
+                margin={{ top: 10, right: 20, left: 0, bottom: 80 }} // Aumenté el margen inferior
+                barCategoryGap="22%"
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  interval={0}
+                  angle={-15}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  wrapperStyle={{ paddingTop: '20px' }}
+                />
+                <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]}>
+                  {puestosData.map((_, i) => (
+                    <Cell key={`puestos-${i}`} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }
 
-export default function Dashboard() {
-  const [data, setData] = useState(mock);
+/* ---------- UI helpers ---------- */
 
-  // Si tienes endpoint real:
-  // useEffect(() => { getDashboard().then(r => setData(r.data)); }, []);
-
-  const { kpis, chart, products } = data;
+function Card({ title, value, icon, sub, accent }) {
+  const ring =
+    accent === "green"
+      ? "ring-1 ring-green-200 bg-green-50/60"
+      : accent === "red"
+      ? "ring-1 ring-red-200 bg-red-50/60"
+      : "ring-1 ring-gray-200 bg-white";
 
   return (
-    <div className="grid gap-6">
-      {/* KPIs */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <KPI icon={TrendingUp} label="Total profit" value={`$${kpis.profit.toLocaleString()}`} />
-        <KPI icon={ShoppingBag} label="Total order" value={kpis.orders.toLocaleString()} sub="-2.8%" />
-        <KPI icon={Eye} label="Impressions" value={kpis.impressions} sub="+4.6%" />
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-400">Sales target</div>
-              <div className="text-2xl font-semibold mt-1">1.3K / 1.8K</div>
-              <div className="text-gray-400 text-sm mt-1">This month</div>
-            </div>
-            <Ring pct={kpis.targetPct} />
+    <div className={`rounded-xl border ${ring} p-4 hover:shadow-sm transition`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 text-ink-muted">
+          <div className="w-9 h-9 rounded-lg bg-white border grid place-items-center">
+            {icon}
           </div>
-        </Card>
+          <span className="text-sm">{title}</span>
+        </div>
       </div>
+      <div className="text-3xl font-semibold">{value}</div>
+      {sub && <div className="text-xs text-ink-muted mt-1">{sub}</div>}
+    </div>
+  );
+}
 
-      {/* Chart + Top products */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-lg font-semibold">Overview</div>
-            <div className="text-sm text-gray-400 flex items-center gap-2"><Target size={16}/> Monthly</div>
-          </div>
-
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chart} margin={{ top: 5, right: 10, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="m" stroke="#9ca3af" />
-                <YAxis stroke="#9ca3af" />
-                <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937" }} />
-                <Line type="monotone" dataKey="v" stroke="#2563eb" strokeWidth={3} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="text-lg font-semibold mb-4">Top products</div>
-          <div className="space-y-4">
-            {products.map((p) => (
-              <div key={p.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-12 rounded-xl2 bg-soft" />
-                  <div>
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-gray-400 text-sm">Sold: {p.sold}</div>
-                  </div>
-                </div>
-                <div className={p.change >= 0 ? "text-emerald-400" : "text-rose-400"}>
-                  {p.change > 0 ? "+" : ""}{p.change}%
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card>
-          <div className="text-lg font-semibold mb-2">Notes</div>
-          <p className="text-gray-300 text-sm">Aquí puedes poner accesos rápidos, campañas, alertas o cualquier widget.</p>
-        </Card>
+function Panel({ title, icon, children, className = "" }) {
+  return (
+    <div className={`rounded-xl border bg-white ${className}`}>
+      <div className="p-4 border-b flex items-center gap-2">
+        {icon}
+        <h2 className="font-medium">{title}</h2>
       </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
+
+function Empty({ children }) {
+  return (
+    <div className="h-32 grid place-items-center text-sm text-ink-muted">
+      {children}
     </div>
   );
 }
