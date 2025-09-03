@@ -1,3 +1,5 @@
+// src/layouts/DashboardLayout.jsx (Código completo y final)
+
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
@@ -12,6 +14,7 @@ import {
   FileText,
   LogOut,
   ChevronDown,
+  List, // ✅ CAMBIO 1: Ícono "List" importado
 } from "lucide-react";
 import { logout } from "@/api/auth";
 
@@ -33,22 +36,28 @@ const NavItem = ({ to, icon: Icon, label, open }) => (
   </NavLink>
 );
 
-// Nuevo: Subitem visual del submenú
+// ✅ CAMBIO 2: Componente SubItem con estilos de Tailwind CSS
 const SubItem = ({ to, icon: Icon, label }) => (
   <NavLink
     end
     to={to}
     className={({ isActive }) =>
       clsx(
-        "sidebar-subitem",
-        isActive && "sidebar-subitem--active"
+        // Estilos base para todos los sub-items
+        "flex items-center w-full p-2 pl-3 my-1 text-sm font-medium rounded-lg transition-colors duration-150",
+        // Estilos condicionales (si está activo o no)
+        isActive
+          ? "bg-emerald-100 text-emerald-700 font-semibold" // Estilo ACTIVO
+          : "text-slate-600 hover:bg-emerald-50"       // Estilo INACTIVO y hover
       )
     }
   >
-    {Icon && <Icon size={16} className="mr-2" />}
+    {/* El ícono y el texto */}
+    {Icon && <Icon size={16} className="mr-3" />}
     <span>{label}</span>
   </NavLink>
 );
+
 
 export default function DashboardLayout() {
   const [open, setOpen] = useState(true); // ancho del sidebar
@@ -130,10 +139,10 @@ export default function DashboardLayout() {
             )}
           </button>
 
-          {/* Subitems de empleados */}
+          {/* ✅ CAMBIO 3: Subitems de empleados actualizados */}
           {open && openEmp && (
-            <div role="group" className="mt-1 mb-2 ml-2 rounded-xl bg-emerald-50/50 p-1">
-              <SubItem to="/empleados" label="Listado" />
+            <div role="group" className="mt-1 mb-2 ml-4 mr-2">
+              <SubItem to="/empleados" icon={List} label="Listado" />
               <SubItem to="/empleados/contratos" icon={FileText} label="Contratos" />
             </div>
           )}

@@ -41,27 +41,28 @@
   color: #888;
 }
 
+/* Estilo bonito para subitems del sidebar */
 .sidebar-subitem {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.45rem 0.75rem 0.45rem 2.5rem;  /* izquierda alineada */
+  padding: 0.45rem 1rem;
   margin: 2px 0;
   border-radius: 0.75rem;
   font-size: 0.925rem;
-  color: #0a0f1a;
+  color: #0f172a; /* zinc-900 */
   text-decoration: none;
   transition: background 0.2s;
+  padding-left: 2.5rem; /* Para alinearlo con los íconos del menú principal */
   white-space: nowrap;
 }
 
 .sidebar-subitem:hover {
-  background: rgba(5, 150, 105, 0.08);
+  background-color: rgba(5, 150, 105, 0.08); /* verde suave al hover */
 }
 
 .sidebar-subitem--active {
-  background: rgba(5, 150, 105, 0.16);
+  background-color: rgba(5, 150, 105, 0.16); /* activo */
   font-weight: 600;
   outline: 1px solid rgba(5, 150, 105, 0.25);
 }
-

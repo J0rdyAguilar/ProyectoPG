@@ -42,7 +42,11 @@ function App() {
 
   useEffect(() => {
     const tokenAlmacenado = localStorage.getItem('token')
+
     if (tokenAlmacenado) {
+      // ✅ Aquí se configura el token globalmente en axios
+      axios.defaults.headers.common["Authorization"] = `Bearer ${tokenAlmacenado}`
+
       setToken(tokenAlmacenado)
       autenticarUsuario(tokenAlmacenado)
     } else {
@@ -74,7 +78,19 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to={token ? "/perfil" : "/login"} />} />
-      <Route path="/login" element={<Login setToken={setToken} autenticarUsuario={autenticarUsuario} />} />
+      <Route
+        path="/login"
+        element={
+          <Login
+            setToken={(tk) => {
+              // ✅ Asegúrate de configurar axios también al iniciar sesión
+              axios.defaults.headers.common["Authorization"] = `Bearer ${tk}`
+              setToken(tk)
+            }}
+            autenticarUsuario={autenticarUsuario}
+          />
+        }
+      />
 
       <Route
         path="/perfil"
