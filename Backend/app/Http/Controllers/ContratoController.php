@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 class ContratoController extends Controller
 {
     /**
-     * Listar contratos (todos o filtrados)
+     * Listar contratos (todos o filtrados por empleado, estado y búsqueda)
      */
     public function index(Request $request)
     {
@@ -29,6 +29,25 @@ class ContratoController extends Controller
             if ($request->filled('estado')) {
                 $q->where('ESTADO', (int) $request->estado);
             }
+
+            // ✅ INICIO: Lógica de la barra de búsqueda
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $q->where(function ($query) use ($search) {
+                    $searchTerm = '%' . $search . '%';
+
+                    // Busca en las columnas de la tabla 'contratos'
+                    $query->where('tipo_contrato', 'like', $searchTerm)
+                          ->orWhere('plantilla', 'like', $searchTerm);
+
+                    // También busca en el nombre y apellido del empleado relacionado
+                    $query->orWhereHas('empleado', function($subQuery) use ($searchTerm) {
+                        $subQuery->where('nombres', 'like', $searchTerm)
+                                 ->orWhere('apellidos', 'like', $searchTerm);
+                    });
+                });
+            }
+            // ✅ FIN: Lógica de la barra de búsqueda
 
             $perPage = $request->get('per_page', 15);
             $contratos = $q->paginate($perPage);

@@ -71,14 +71,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/posibles-jefes/{empleadoId?}', [EmpleadoController::class, 'posiblesJefes']);
 
     // -------------------------------
-    // Usuarios
-    // -------------------------------
-    /*Route::get('/usuarios', [UsuarioController::class, 'index']);
-    Route::post('/usuarios', [UsuarioController::class, 'store']);
-    Route::put('/usuarios/{id}/desactivar', [UsuarioController::class, 'desactivar']);
-    */
-
-    // -------------------------------
     // Contratos
     // -------------------------------
     Route::get('/contratos', [ContratoController::class, 'index']);                // listar (opcional: ?empleado_id=&estado=)
