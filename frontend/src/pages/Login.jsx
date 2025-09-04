@@ -86,7 +86,7 @@ function Login({ setToken, autenticarUsuario }) {
               onChange={(e) => setUsuario(e.target.value)}
               required
               autoFocus
-              placeholder="tu_usuario"
+              placeholder="tu usuario"
               className="input"
             />
           </label>
@@ -100,7 +100,7 @@ function Login({ setToken, autenticarUsuario }) {
                 value={contrasena}
                 onChange={(e) => setContrasena(e.target.value)}
                 required
-                placeholder="••••••••"
+                placeholder="***********"
                 className="input pr-24"
               />
               <button
@@ -117,14 +117,14 @@ function Login({ setToken, autenticarUsuario }) {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary h-11 mt-1 disabled:opacity-60"
+            className="btn-primary h-9 px-8 mt-1 disabled:opacity-60 mx-auto max-w-xs"
           >
             {loading ? "Ingresando..." : "Entrar"}
           </button>
         </form>
 
         <div className="mt-4 text-xs text-ink-muted text-center">
-          Backend: <b>{API_URL}</b> — verifica que esté corriendo y el usuario exista.
+          Versión 0.1
         </div>
       </div>
     </div>
