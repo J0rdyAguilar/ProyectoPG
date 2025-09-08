@@ -27,18 +27,21 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'usuario' => $usuario
+            'usuario' => [
+                'id' => $usuario->id,
+                'usuario' => $usuario->usuario,
+                'rol_id' => $usuario->rol_id,
+                'rol_nombre' => $usuario->rol->nombre ?? null,
+            ]
         ]);
     }
 
     public function perfil(Request $request)
     {
         return response()->json([
-            'usuario' => $request->user()->load('rol') // importante
+            'usuario' => $request->user()->load('rol')
         ]);
     }
-
-
 
     public function logout(Request $request)
     {

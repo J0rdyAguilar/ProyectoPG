@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -33,11 +32,23 @@ function Login({ setToken, autenticarUsuario }) {
       const token = data?.token;
       if (!token) throw new Error("El backend no devolvió 'token'.");
 
-      // guarda token
+      const usuarioData = data?.usuario;
+      if (!usuarioData) throw new Error("El backend no devolvió datos del usuario.");
+
+      // Guarda datos en localStorage
       localStorage.setItem("token", token);
+      localStorage.setItem("usuario_id", usuarioData.id);
+      localStorage.setItem("rol_id", usuarioData.rol_id);
+      localStorage.setItem("rol_nombre", usuarioData.rol_nombre);
 
       // setea opcionalmente en axios por si lo usas global
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      // obtener perfil y guardar
+      const perfil = await axios.get(`${API_URL}/api/perfil`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      localStorage.setItem("usuario", JSON.stringify(perfil.data));
 
       // callbacks opcionales
       setToken?.(token);
@@ -56,6 +67,7 @@ function Login({ setToken, autenticarUsuario }) {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen grid place-items-center bg-bg">

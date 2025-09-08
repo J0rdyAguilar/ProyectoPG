@@ -10,6 +10,7 @@ use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ContratoController;
+use App\Http\Controllers\PermisoLaboralController;
 use App\Http\Controllers\UsuarioController;
 
 
@@ -89,13 +90,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // Descargar archivo del contrato
     Route::get('/contratos/{contrato}/download', [ContratoController::class, 'download']);
 
+    // -------------------------------
+    // Permisos Laborales
+    // -------------------------------
+    Route::get('/permisos-laborales', [PermisoLaboralController::class, 'index']);   // Listar todos los permisos
+    Route::post('/permisos-laborales', [PermisoLaboralController::class, 'store']);  // Crear un nuevo permiso
+    Route::get('/permisos-laborales/{id}', [PermisoLaboralController::class, 'show']); // Mostrar un permiso específico
+    Route::put('/permisos-laborales/{id}', [PermisoLaboralController::class, 'update']); // Actualizar un permiso
+    Route::put('/permisos-laborales/{id}/desactivar', [PermisoLaboralController::class, 'destroy']); // Desactivar un permiso (Borrado lógico)
 
-    Route::middleware('auth:sanctum')->get('/dashboard', [DashboardController::class, 'index']);
+    Route::put('/permisos-laborales/{id}/aprobar', [PermisoLaboralController::class, 'aprobar']);
+    Route::put('/permisos-laborales/{id}/validar', [PermisoLaboralController::class, 'validar']);
 
-
-
-    //dashboard
+    // -------------------------------
+    // Dashboard
+    // -------------------------------
     Route::get('/dashboard', [DashboardController::class, 'index']);
-
-
-    });
+});

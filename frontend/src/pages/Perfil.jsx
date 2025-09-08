@@ -28,7 +28,6 @@ function Perfil({ usuario, onLogout }) {
       )}
 
       <br />
-      <button onClick={onLogout}>Cerrar sesión</button>
     </div>
   )
 }
