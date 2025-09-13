@@ -1,6 +1,7 @@
 // src/layouts/DashboardLayout.jsx (Código completo y final con menú de perfil y permisos)
 
 import { Outlet, NavLink, useNavigate, useLocation, Link } from "react-router-dom";
+import { ClipboardList } from 'lucide-react';
 import { useEffect, useState, Fragment } from "react";
 import clsx from "clsx";
 import { Menu, Transition } from '@headlessui/react';
@@ -129,6 +130,7 @@ export default function DashboardLayout() {
               <SubItem to="/empleados/contratos" icon={FileText} label="Contratos" />
               {/* -- 2. Enlace añadido -- */}
               <SubItem to="/empleados/permisos" icon={CalendarClock} label="Permisos" />
+              <SubItem to="/empleados/solicitudes" icon={ClipboardList} label="Solicitudes" />
             </div>
           )}
 

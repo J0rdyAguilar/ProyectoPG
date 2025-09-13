@@ -11,7 +11,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ContratoController;
 use App\Http\Controllers\PermisoLaboralController;
-use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\SolicitudLaboralController;
 
 
 // -------------------------------
@@ -101,6 +101,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::put('/permisos-laborales/{id}/aprobar', [PermisoLaboralController::class, 'aprobar']);
     Route::put('/permisos-laborales/{id}/validar', [PermisoLaboralController::class, 'validar']);
+
+    // Listar solicitudes (con filtros tipo, estado, empleado_id, etc)
+    Route::get('/solicitudes-laborales', [SolicitudLaboralController::class, 'index']);
+
+    // Crear nueva solicitud
+    Route::post('/solicitudes-laborales', [SolicitudLaboralController::class, 'store']);
+
+    // Actualizar una solicitud
+    Route::put('/solicitudes-laborales/{id}', [SolicitudLaboralController::class, 'update']);
+
+    // Desactivar una solicitud
+    Route::put('/solicitudes-laborales/{id}/desactivar', [SolicitudLaboralController::class, 'desactivar']);
+
+    // Aprobar por jefe inmediato
+    Route::put('/solicitudes-laborales/{id}/aprobar', [SolicitudLaboralController::class, 'aprobar']);
+
+    // Validar por RRHH
+    Route::put('/solicitudes-laborales/{id}/validar', [SolicitudLaboralController::class, 'validar']);
 
     // -------------------------------
     // Dashboard
