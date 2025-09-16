@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { PlusCircle } from "lucide-react";
 import {
   listarSolicitudes,
@@ -7,9 +7,11 @@ import {
   validarSolicitud,
   desactivarSolicitud,
 } from "@/api/solicitudes";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 console.log("🚀 SolicitudesLaborales cargado");
-
 
 const tipos = [
   { value: "permiso", label: "Permiso" },
@@ -29,28 +31,33 @@ export default function SolicitudesLaborales() {
   const [fechaFin, setFechaFin] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const token = localStorage.getItem("token");
+  const token = useMemo(
+    () => localStorage.getItem("token") || localStorage.getItem("userToken"),
+    []
+  );
   const rolId = parseInt(localStorage.getItem("rol_id") || "0");
 
+  // Cargar empleados
   useEffect(() => {
-    const cargarEmpleados = async () => {
+    (async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/empleados", {
-          headers: { Authorization: `Bearer ${token}` },
+        const { data } = await axios.get(`${API_URL}/api/empleados`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          params: { page: 1, per_page: 500 },
         });
-        const data = await res.json();
-        setEmpleados(data.data || []);
-        if (!selectedEmpleado && data.data?.length) {
-          setSelectedEmpleado(String(data.data[0].id));
+        const arr = Array.isArray(data?.data) ? data.data : data;
+        console.log("👥 Empleados cargados:", arr);
+        setEmpleados(arr || []);
+        if (arr?.length && !selectedEmpleado) {
+          setSelectedEmpleado(String(arr[0].id));
         }
       } catch (err) {
         console.error(err);
       }
-    };
+    })();
+  }, [API_URL, token]);
 
-    cargarEmpleados();
-  }, [token]);
-
+  // Cargar solicitudes
   const cargarSolicitudes = async () => {
     setLoading(true);
     try {
@@ -71,6 +78,7 @@ export default function SolicitudesLaborales() {
     if (selectedEmpleado) cargarSolicitudes();
   }, [selectedEmpleado, estadoFiltro, tipo]);
 
+  // Crear solicitud
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!selectedEmpleado || !motivo || !fechaInicio) {
@@ -100,11 +108,12 @@ export default function SolicitudesLaborales() {
     }
   };
 
+  // Acciones
   const handleAprobar = async (id) => {
     try {
       await aprobarSolicitud(id);
       cargarSolicitudes();
-    } catch (err) {
+    } catch {
       alert("Error al aprobar");
     }
   };
@@ -113,7 +122,7 @@ export default function SolicitudesLaborales() {
     try {
       await validarSolicitud(id);
       cargarSolicitudes();
-    } catch (err) {
+    } catch {
       alert("Error al validar");
     }
   };
@@ -122,15 +131,22 @@ export default function SolicitudesLaborales() {
     try {
       await desactivarSolicitud(id);
       cargarSolicitudes();
-    } catch (err) {
+    } catch {
       alert("Error al desactivar");
     }
+  };
+
+  // Formateo de fechas
+  const formatDate = (date) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("es-GT");
   };
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Solicitudes Laborales</h1>
 
+      {/* Formulario */}
       <form onSubmit={onSubmit} className="bg-white border rounded-xl p-4 mb-6">
         <h2 className="text-lg font-semibold mb-4">Nueva solicitud</h2>
         <div className="grid md:grid-cols-3 gap-4">
@@ -155,9 +171,12 @@ export default function SolicitudesLaborales() {
               value={selectedEmpleado}
               onChange={(e) => setSelectedEmpleado(e.target.value)}
             >
+              <option value="">-- Selecciona empleado --</option>
               {empleados.map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.nombre || e.nombres}
+                  {e.nombre
+                    ? `${e.id} - ${e.nombre} ${e.apellido || ""}`
+                    : `${e.id} - ${e.nombres || ""}`}
                 </option>
               ))}
             </select>
@@ -202,27 +221,40 @@ export default function SolicitudesLaborales() {
       </form>
 
       <div className="bg-white border rounded-xl overflow-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-100">
+        <table className="min-w-full text-sm table-auto border-collapse">
+          <thead className="bg-gray-100 text-left">
             <tr>
-              <th className="px-4 py-2">Tipo</th>
-              <th className="px-4 py-2">Empleado</th>
-              <th className="px-4 py-2">Motivo</th>
-              <th className="px-4 py-2">Inicio</th>
-              <th className="px-4 py-2">Fin</th>
-              <th className="px-4 py-2">Estado</th>
-              <th className="px-4 py-2">Acciones</th>
+              <th className="px-4 py-2 w-24">Tipo</th>
+              <th className="px-4 py-2 w-56">Empleado</th>
+              <th className="px-4 py-2 w-64">Motivo</th>
+              <th className="px-4 py-2 w-32">Inicio</th>
+              <th className="px-4 py-2 w-32">Fin</th>
+              <th className="px-4 py-2 w-28">Estado</th>
+              <th className="px-4 py-2 w-40">Acciones</th>
             </tr>
           </thead>
           <tbody>
+            {lista.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                  No hay solicitudes
+                </td>
+              </tr>
+            )}
             {lista.map((s) => (
-              <tr key={s.id}>
-                <td>{s.tipo}</td>
-                <td>{s.empleado?.nombre || "-"}</td>
-                <td>{s.motivo}</td>
-                <td>{new Date(s.fecha_inicio).toLocaleDateString()}</td>
-                <td>{s.fecha_fin ? new Date(s.fecha_fin).toLocaleDateString() : "-"}</td>
-                <td>
+              <tr key={s.id} className="border-t hover:bg-gray-50">
+                <td className="px-4 py-2">{s.tipo}</td>
+                <td className="px-4 py-2">
+                  {s.empleado
+                    ? `${s.empleado.id} - ${s.empleado.nombre || s.empleado.nombres} ${s.empleado.apellido || s.empleado.apellidos || ""}`
+                    : "-"}
+                </td>
+                <td className="px-4 py-2 truncate max-w-xs">{s.motivo}</td>
+                <td className="px-4 py-2">{new Date(s.fecha_inicio).toLocaleDateString()}</td>
+                <td className="px-4 py-2">
+                  {s.fecha_fin ? new Date(s.fecha_fin).toLocaleDateString() : "-"}
+                </td>
+                <td className="px-4 py-2">
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
                       s.estado ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-700"
@@ -231,7 +263,7 @@ export default function SolicitudesLaborales() {
                     {s.estado ? "Activo" : "Inactivo"}
                   </span>
                 </td>
-                <td className="flex gap-2">
+                <td className="px-4 py-2 flex gap-2">
                   {rolId === 2 && !s.aprobado_por && (
                     <button onClick={() => handleAprobar(s.id)} className="text-blue-600 hover:underline">
                       Aprobar

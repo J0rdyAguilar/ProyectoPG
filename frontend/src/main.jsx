@@ -1,20 +1,21 @@
-// src/main.jsx MODIFICADO
+// src/main.jsx
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { RouterProvider } from "react-router-dom";
-import { router } from "./router";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
 import "./index.css";
 
-// --- 1. AÑADE ESTAS DOS LÍNEAS ---
-import AppGate from "./components/AppGate";      // El componente que controla la lógica
-import './components/SplashScreen.css';         // Los estilos del splash screen
+// Mantengo tu lógica de AppGate y SplashScreen
+import AppGate from "./components/AppGate";      
+import "./components/SplashScreen.css";         
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {/* --- 2. ENVUELVE RouterProvider CON AppGate --- */}
     <AppGate>
-      <RouterProvider router={router} />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </AppGate>
   </React.StrictMode>
 );

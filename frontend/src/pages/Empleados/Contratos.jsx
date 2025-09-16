@@ -9,20 +9,18 @@ import {
   urlDescargaContrato,
 } from "@/api/contratos";
 import axios from "axios";
-import { Save, Search } from "lucide-react"; // ✅ Se importa el ícono de búsqueda
+import { Save, Search } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-// ✅ Hook personalizado para "debouncing". Evita llamadas excesivas a la API.
+// ✅ Hook personalizado para "debouncing"
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
-    return () => {
-      clearTimeout(handler);
-    };
+    return () => clearTimeout(handler);
   }, [value, delay]);
   return debouncedValue;
 }
@@ -35,12 +33,11 @@ export default function Contratos() {
   const [loading, setLoading] = useState(false);
   const [pageData, setPageData] = useState({ current_page: 1, last_page: 1 });
 
-  // ✅ Estado para el término de búsqueda
+  // 🔎 Búsqueda
   const [searchTerm, setSearchTerm] = useState("");
-  // ✅ El valor "debounced" que usaremos para llamar a la API
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms de espera
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Form
+  // Formulario
   const [tipo_contrato, setTipoContrato] = useState("");
   const [fecha_inicio, setFechaInicio] = useState("");
   const [fecha_fin, setFechaFin] = useState("");
@@ -53,7 +50,7 @@ export default function Contratos() {
     []
   );
 
-  // Cargar empleados para el select
+  // 📌 Cargar empleados
   useEffect(() => {
     (async () => {
       try {
@@ -63,14 +60,16 @@ export default function Contratos() {
         });
         const arr = Array.isArray(data?.data) ? data.data : data;
         setEmpleados(arr || []);
-        if (arr?.length && !selectedEmpleado) setSelectedEmpleado(String(arr[0].id));
+        if (arr?.length && !selectedEmpleado) {
+          setSelectedEmpleado(String(arr[0].id));
+        }
       } catch (e) {
-        console.error(e);
+        console.error("Error cargando empleados:", e);
       }
     })();
   }, [API_URL, token]);
 
-  // Cargar contratos
+  // 📌 Cargar contratos
   async function cargar(page = 1) {
     if (!selectedEmpleado) return;
     setLoading(true);
@@ -79,18 +78,20 @@ export default function Contratos() {
         empleado_id: selectedEmpleado,
         estado: estadoFiltro !== "" ? Number(estadoFiltro) : undefined,
         page,
-        search: debouncedSearchTerm, // ✅ Enviamos el término de búsqueda a la API
+        search: debouncedSearchTerm,
       });
       setLista(resp.data || []);
-      setPageData({ current_page: resp.current_page, last_page: resp.last_page });
+      setPageData({
+        current_page: resp.current_page ?? 1,
+        last_page: resp.last_page ?? 1,
+      });
     } catch (e) {
-      console.error(e);
+      console.error("Error cargando contratos:", e);
     } finally {
       setLoading(false);
     }
   }
 
-  // ✅ El useEffect ahora también depende del término de búsqueda "debounced"
   useEffect(() => {
     cargar(1);
   }, [selectedEmpleado, estadoFiltro, debouncedSearchTerm]);
@@ -108,8 +109,7 @@ export default function Contratos() {
     const errors = err?.response?.data?.errors;
     const msg = err?.response?.data?.message;
     if (errors && typeof errors === "object") {
-      const listado = Object.values(errors).flat().slice(0, 5).join("\n");
-      return listado || msg || "Error de validación.";
+      return Object.values(errors).flat().slice(0, 5).join("\n") || msg || "Error de validación.";
     }
     return msg || "Error al guardar el contrato.";
   }
@@ -133,14 +133,15 @@ export default function Contratos() {
       setLoading(true);
       if (editId) {
         await actualizarContrato(editId, fd);
+        alert("Contrato actualizado");
       } else {
         await crearContrato(fd);
+        alert("Contrato creado");
       }
       resetForm();
       cargar(1);
-      alert(editId ? "Contrato actualizado" : "Contrato creado");
     } catch (err) {
-      console.error("Error al guardar:", err.response?.data);
+      console.error("Error al guardar contrato:", err.response?.data);
       alert(mensajesError(err));
     } finally {
       setLoading(false);
@@ -163,7 +164,7 @@ export default function Contratos() {
       await cambiarEstadoContrato(item.id, !item.ESTADO);
       cargar(pageData.current_page);
     } catch (e) {
-      console.error(e);
+      console.error("Error al cambiar estado:", e);
       alert("Error al cambiar el estado");
     } finally {
       setLoading(false);
@@ -186,14 +187,17 @@ export default function Contratos() {
             onChange={(e) => setSelectedEmpleado(String(e.target.value))}
             required
           >
-            <option value="" disabled>Seleccione…</option>
+            <option value="">Seleccione…</option>
             {empleados.map((e) => (
               <option key={e.id} value={String(e.id)}>
-                {e.nombres ? `${e.id} - ${e.nombres} ${e.apellidos || ""}` : `${e.id} - ${e.nombre || ""}`}
+                {e.nombre
+                  ? `${e.id} - ${e.nombre} ${e.apellido || ""}`
+                  : `${e.id} - ${e.nombres || ""} ${e.apellidos || ""}`}
               </option>
             ))}
           </select>
         </div>
+
         <div>
           <label className="block text-sm mb-1">Estado</label>
           <select
@@ -206,224 +210,222 @@ export default function Contratos() {
             <option value="">Todos</option>
           </select>
         </div>
-        
-        {/* ✅ Barra de búsqueda */}
+
         <div>
           <label className="block text-sm mb-1">Buscar</label>
           <div className="relative">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-             <input
-                type="text"
-                placeholder="Por tipo, empleado, etc..."
-                className="w-full border rounded pl-10 pr-3 py-2"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Por tipo, empleado, etc..."
+              className="w-full border rounded pl-10 pr-3 py-2"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
       </div>
 
       {/* Formulario */}
       <form onSubmit={onSubmit} className="bg-white rounded-xl border p-4 mb-8">
-         <h2 className="text-lg font-medium mb-4">
-           {editId ? `Editar contrato #${editId}` : "Nuevo contrato"}
-         </h2>
-         <div className="grid md:grid-cols-3 gap-4">
-           <div>
-             <label className="block text-sm mb-1">
-               Tipo de contrato <span className="text-red-500">*</span>
-             </label>
-             <input
-               className="w-full border rounded px-3 py-2"
-               value={tipo_contrato}
-               onChange={(e) => setTipoContrato(e.target.value)}
-               required
-               placeholder="Ej: Indefinido, Temporal, etc."
-             />
-           </div>
-           <div>
-             <label className="block text-sm mb-1">
-               Fecha inicio <span className="text-red-500">*</span>
-             </label>
-             <input
-               type="date"
-               className="w-full border rounded px-3 py-2"
-               value={fecha_inicio}
-               onChange={(e) => setFechaInicio(e.target.value)}
-               required
-             />
-           </div>
-           <div>
-             <label className="block text-sm mb-1">Fecha fin (opcional)</label>
-             <input
-               type="date"
-               className="w-full border rounded px-3 py-2"
-               value={fecha_fin}
-               onChange={(e) => setFechaFin(e.target.value)}
-             />
-           </div>
-           <div className="md:col-span-2">
-             <label className="block text-sm mb-1">Plantilla (opcional)</label>
-             <textarea
-               className="w-full border rounded px-3 py-2"
-               rows={3}
-               value={plantilla}
-               onChange={(e) => setPlantilla(e.target.value)}
-               placeholder="Texto base del contrato…"
-             />
-           </div>
-           <div>
-             <label className="block text-sm mb-1">
-               Archivo {!editId && <span className="text-red-500">*</span>}
-             </label>
-             <input
-               type="file"
-               accept=".pdf,.doc,.docx"
-               className="w-full border rounded px-3 py-2"
-               onChange={(e) => setArchivo(e.target.files?.[0] || null)}
-               required={!editId}
-             />
-             {editId && (
-               <p className="text-xs text-gray-500 mt-1">
-                 Deja vacío para mantener el archivo actual
-               </p>
-             )}
-           </div>
-         </div>
-         <div className="mt-4 flex gap-3">
-           <button
-             type="submit"
-             className="flex items-center gap-2 px-5 py-2 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-70"
-             disabled={loading || !selectedEmpleado}
-           >
-             <Save size={18} />
-             {editId ? (loading ? "Guardando…" : "Guardar cambios") : (loading ? "Guardando…" : "Guardar")}
-           </button>
-           {editId && (
-             <button
-               type="button"
-               className="px-5 py-2 rounded-full border font-medium text-gray-700 hover:bg-gray-100"
-               onClick={resetForm}
-               disabled={loading}
-             >
-               Cancelar
-             </button>
-           )}
-         </div>
+        <h2 className="text-lg font-medium mb-4">
+          {editId ? `Editar contrato #${editId}` : "Nuevo contrato"}
+        </h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm mb-1">
+              Tipo de contrato <span className="text-red-500">*</span>
+            </label>
+            <input
+              className="w-full border rounded px-3 py-2"
+              value={tipo_contrato}
+              onChange={(e) => setTipoContrato(e.target.value)}
+              required
+              placeholder="Ej: Indefinido, Temporal, etc."
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">
+              Fecha inicio <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              className="w-full border rounded px-3 py-2"
+              value={fecha_inicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Fecha fin (opcional)</label>
+            <input
+              type="date"
+              className="w-full border rounded px-3 py-2"
+              value={fecha_fin}
+              onChange={(e) => setFechaFin(e.target.value)}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm mb-1">Plantilla (opcional)</label>
+            <textarea
+              className="w-full border rounded px-3 py-2"
+              rows={3}
+              value={plantilla}
+              onChange={(e) => setPlantilla(e.target.value)}
+              placeholder="Texto base del contrato…"
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">
+              Archivo {!editId && <span className="text-red-500">*</span>}
+            </label>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              className="w-full border rounded px-3 py-2"
+              onChange={(e) => setArchivo(e.target.files?.[0] || null)}
+              required={!editId}
+            />
+            {editId && (
+              <p className="text-xs text-gray-500 mt-1">
+                Deja vacío para mantener el archivo actual
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 flex gap-3">
+          <button
+            type="submit"
+            className="flex items-center gap-2 px-5 py-2 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-70"
+            disabled={loading || !selectedEmpleado}
+          >
+            <Save size={18} />
+            {editId ? "Guardar cambios" : "Guardar"}
+          </button>
+          {editId && (
+            <button
+              type="button"
+              className="px-5 py-2 rounded-full border font-medium text-gray-700 hover:bg-gray-100"
+              onClick={resetForm}
+              disabled={loading}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
 
       {/* Tabla */}
       <div className="bg-white rounded-xl border">
-         <div className="p-4 flex justify-between items-center">
-           <h3 className="font-medium">Listado de contratos</h3>
-           {loading && <span className="text-sm text-gray-500">Cargando…</span>}
-         </div>
-         <div className="overflow-x-auto">
-           <table className="min-w-full text-sm">
-             <thead>
-               <tr className="bg-gray-50 text-left">
-                 <th className="px-4 py-2">No.</th>
-                 <th className="px-4 py-2">Tipo</th>
-                 <th className="px-4 py-2">Inicio</th>
-                 <th className="px-4 py-2">Fin</th>
-                 <th className="px-4 py-2">Estado</th>
-                 <th className="px-4 py-2">Archivo</th>
-                 <th className="px-4 py-2">Acciones</th>
-               </tr>
-             </thead>
-             <tbody>
-               {lista.length === 0 && !loading && (
-                 <tr>
-                   <td className="px-4 py-6 text-center text-gray-500" colSpan={7}>
-                     No hay contratos para mostrar
-                   </td>
-                 </tr>
-               )}
-               {loading && lista.length === 0 && (
-                 <tr>
-                   <td className="px-4 py-6 text-center text-gray-500" colSpan={7}>
-                     Cargando contratos...
-                   </td>
-                 </tr>
-               )}
-               {lista.map((item) => (
-                 <tr key={item.id} className="border-t hover:bg-gray-50">
-                   <td className="px-4 py-2">{item.id}</td>
-                   <td className="px-4 py-2">{item.tipo || item.tipo_contrato}</td>
-                   <td className="px-4 py-2">{item.inicio || item.fecha_inicio}</td>
-                   <td className="px-4 py-2">{(item.fin || item.fecha_fin) || "-"}</td>
-                   <td className="px-4 py-2">
-                     <span
-                       className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
-                         item.ESTADO ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"
-                       }`}
-                     >
-                       ● {item.ESTADO ? "Activo" : "Inactivo"}
-                     </span>
-                   </td>
-                   <td className="px-4 py-2">
-                     {item.archivo_url ? (
-                       <a
-                         href={urlDescargaContrato(item.id)}
-                         target="_blank"
-                         rel="noreferrer"
-                         className="underline text-blue-600 hover:text-blue-800"
-                       >
-                         Descargar
-                       </a>
-                     ) : (
-                       "-"
-                     )}
-                   </td>
-                   <td className="px-4 py-2">
-                     <div className="flex gap-2">
-                       <button
-                         className="px-3 py-1 rounded border hover:bg-gray-50 text-sm"
-                         onClick={() => startEdit(item)}
-                         disabled={loading}
-                       >
-                         Editar
-                       </button>
-                       <button
-                         className={`px-3 py-1 rounded border text-sm ${
-                           item.ESTADO 
-                             ? "hover:bg-red-50 text-red-600 border-red-200" 
-                             : "hover:bg-green-50 text-green-600 border-green-200"
-                         }`}
-                         onClick={() => toggleEstado(item)}
-                         disabled={loading}
-                       >
-                         {item.ESTADO ? "Desactivar" : "Activar"}
-                       </button>
-                     </div>
-                   </td>
-                 </tr>
-               ))}
-             </tbody>
-           </table>
-         </div>
+        <div className="p-4 flex justify-between items-center">
+          <h3 className="font-medium">Listado de contratos</h3>
+          {loading && <span className="text-sm text-gray-500">Cargando…</span>}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left">
+                <th className="px-4 py-2">No.</th>
+                <th className="px-4 py-2">Empleado</th>
+                <th className="px-4 py-2">Tipo</th>
+                <th className="px-4 py-2">Inicio</th>
+                <th className="px-4 py-2">Fin</th>
+                <th className="px-4 py-2">Estado</th>
+                <th className="px-4 py-2">Archivo</th>
+                <th className="px-4 py-2">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                    No hay contratos para mostrar
+                  </td>
+                </tr>
+              )}
+              {lista.map((item) => (
+                <tr key={item.id} className="border-t hover:bg-gray-50">
+                  <td className="px-4 py-2">{item.id}</td>
+                  <td className="px-4 py-2">
+                    {item.empleado
+                      ? `${item.empleado.id} - ${item.empleado.nombre || item.empleado.nombres} ${item.empleado.apellido || item.empleado.apellidos || ""}`
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-2">{item.tipo || item.tipo_contrato}</td>
+                  <td className="px-4 py-2">{item.inicio || item.fecha_inicio}</td>
+                  <td className="px-4 py-2">{item.fin || item.fecha_fin || "-"}</td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
+                        item.ESTADO ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      ● {item.ESTADO ? "Activo" : "Inactivo"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    {item.archivo_url ? (
+                      <a
+                        href={urlDescargaContrato(item.id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline text-blue-600 hover:text-blue-800"
+                      >
+                        Descargar
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="flex gap-2">
+                      <button
+                        className="px-3 py-1 rounded border hover:bg-gray-50 text-sm"
+                        onClick={() => startEdit(item)}
+                        disabled={loading}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className={`px-3 py-1 rounded border text-sm ${
+                          item.ESTADO
+                            ? "hover:bg-red-50 text-red-600 border-red-200"
+                            : "hover:bg-green-50 text-green-600 border-green-200"
+                        }`}
+                        onClick={() => toggleEstado(item)}
+                        disabled={loading}
+                      >
+                        {item.ESTADO ? "Desactivar" : "Activar"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-         {pageData.last_page > 1 && (
-           <div className="p-4 flex items-center gap-3">
-             <button
-               className="px-3 py-1 rounded border disabled:opacity-50"
-               disabled={pageData.current_page <= 1 || loading}
-               onClick={() => cargar(pageData.current_page - 1)}
-             >
-               « Anterior
-             </button>
-             <span className="text-sm">
-               Página {pageData.current_page} de {pageData.last_page}
-             </span>
-             <button
-               className="px-3 py-1 rounded border disabled:opacity-50"
-               disabled={pageData.current_page >= pageData.last_page || loading}
-               onClick={() => cargar(pageData.current_page + 1)}
-             >
-               Siguiente »
-             </button>
-           </div>
-         )}
+        {pageData.last_page > 1 && (
+          <div className="p-4 flex items-center gap-3">
+            <button
+              className="px-3 py-1 rounded border disabled:opacity-50"
+              disabled={pageData.current_page <= 1 || loading}
+              onClick={() => cargar(pageData.current_page - 1)}
+            >
+              « Anterior
+            </button>
+            <span className="text-sm">
+              Página {pageData.current_page} de {pageData.last_page}
+            </span>
+            <button
+              className="px-3 py-1 rounded border disabled:opacity-50"
+              disabled={pageData.current_page >= pageData.last_page || loading}
+              onClick={() => cargar(pageData.current_page + 1)}
+            >
+              Siguiente »
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

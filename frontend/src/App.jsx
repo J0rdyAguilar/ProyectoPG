@@ -5,15 +5,21 @@ import axios from 'axios'
 // Layout
 import DashboardLayout from './layouts/DashboardLayout'
 
-// Páginas
+// Páginas principales
 import Login from './pages/Login'
 import Perfil from './pages/Perfil'
-import Empleados from './pages/Empleados'
-import NuevaEmpleado from './pages/NuevaEmpleado'
-import EditarEmpleado from './pages/EditarEmpleado'
 import Dependencias from './pages/Dependencias'
 import Puestos from './pages/Puestos'
+import Roles from './pages/Roles'
+import Dashboard from './pages/Dashboard'
+
+// Páginas de empleados
+import Empleados from './pages/empleados/Empleados'
+import NuevaEmpleado from './pages/empleados/NuevaEmpleado'
+import EditarEmpleado from './pages/empleados/EditarEmpleado'
 import SolicitudesLaborales from './pages/empleados/SolicitudesLaborales'
+import Contratos from './pages/empleados/Contratos'
+import PermisosLaborales from './pages/empleados/PermisosLaborales'
 
 // Ruta protegida
 function RutaProtegida({ children, token, usuario }) {
@@ -56,7 +62,10 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/perfil" />} />
+      {/* Redirigir raíz */}
+      <Route path="/" element={<Navigate to="/dashboard" />} />
+
+      {/* Login */}
       <Route
         path="/login"
         element={
@@ -70,22 +79,37 @@ function App() {
         }
       />
 
-      {/* ✅ TODAS LAS RUTAS PROTEGIDAS VAN DENTRO DEL LAYOUT */}
-      <Route path="/" element={
-        <RutaProtegida token={token} usuario={usuario}>
-          <DashboardLayout />
-        </RutaProtegida>
-      }>
+      {/* Rutas protegidas dentro del layout */}
+      <Route
+        path="/"
+        element={
+          <RutaProtegida token={token} usuario={usuario}>
+            <DashboardLayout />
+          </RutaProtegida>
+        }
+      >
+        {/* Dashboard */}
+        <Route path="dashboard" element={<Dashboard />} />
+
+        {/* Perfil */}
         <Route path="perfil" element={<Perfil usuario={usuario} />} />
+
+        {/* Empleados */}
         <Route path="empleados" element={<Empleados />} />
         <Route path="empleados/nuevo" element={<NuevaEmpleado />} />
         <Route path="empleados/editar/:id" element={<EditarEmpleado />} />
+        <Route path="empleados/contratos" element={<Contratos />} />
+        <Route path="empleados/permisos" element={<PermisosLaborales />} />
+        <Route path="empleados/solicitudes" element={<SolicitudesLaborales />} />
+
+        {/* Catálogos */}
         <Route path="dependencias" element={<Dependencias />} />
         <Route path="puestos" element={<Puestos />} />
-        <Route path="empleados/solicitudes" element={<SolicitudesLaborales />} />
-      </Route>
+        <Route path="roles" element={<Roles />} />
 
-      <Route path="*" element={<h1>404 - Página no encontrada</h1>} />
+        {/* Catch-all dentro del layout */}
+        <Route path="*" element={<h1>404 - Página no encontrada</h1>} />
+      </Route>
     </Routes>
   )
 }
