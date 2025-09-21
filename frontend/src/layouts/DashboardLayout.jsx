@@ -129,7 +129,7 @@ export default function DashboardLayout() {
               <SubItem to="/empleados" icon={List} label="Listado" />
               <SubItem to="/empleados/contratos" icon={FileText} label="Contratos" />
               {/* -- 2. Enlace añadido -- */}
-              <SubItem to="/empleados/permisos" icon={CalendarClock} label="Permisos" />
+              
               <SubItem to="/empleados/solicitudes" icon={ClipboardList} label="Solicitudes" />
             </div>
           )}

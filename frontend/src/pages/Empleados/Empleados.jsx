@@ -142,7 +142,7 @@ export default function Empleados() {
             {!rows.length && (
               <tr>
                 <td colSpan="11" className="py-10 text-center text-ink-muted">
-                Sin resultados
+                  Sin resultados
                 </td>
               </tr>
             )}
@@ -152,3 +152,4 @@ export default function Empleados() {
     </div>
   );
 }
+

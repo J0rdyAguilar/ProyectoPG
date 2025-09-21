@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class EmpleadoController extends Controller
 {
@@ -21,7 +22,7 @@ class EmpleadoController extends Controller
                 'dependencia:id,nombre',
                 'puesto:id,nombre',
                 'usuario.rol:id,nombre',
-                'jefe:id,nombre,apellido'  // Agregar relación con jefe
+                'jefe:id,nombre,apellido'
             ])
             ->get();
 
@@ -38,7 +39,7 @@ class EmpleadoController extends Controller
                 'puesto'                => optional($e->puesto)->nombre,
                 'rol'                   => optional(optional($e->usuario)->rol)->nombre,
                 'jefe'                  => $e->jefe ? $e->jefe->nombre . ' ' . $e->jefe->apellido : null,
-                'id_jefe'               => $e->id_jefe,  // Para el frontend
+                'id_jefe'               => $e->id_jefe,
             ];
         });
     }
@@ -87,25 +88,22 @@ class EmpleadoController extends Controller
     {
         $validated = $request->validate([
             // Datos del empleado
-            'nombre'                 => 'required|string|max:100',
-            'apellido'               => 'required|string|max:100',
-            'numero_identificacion'  => 'required|string|max:50|unique:empleados',
-            'fecha_nacimiento'       => 'required|date',
-            'numero_celular'         => 'required',
-            'direccion'              => 'required|string',
-            'dependencia_id'         => 'required|exists:dependencias,id',
-            'puesto_id'              => 'required|exists:puestos,id',
-            'id_jefe'                => 'nullable|exists:empleados,id',  // Nuevo campo
-            'USUARIO_INGRESO'        => 'nullable|integer',
+            'nombre'                => 'required|string|max:100',
+            'apellido'              => 'required|string|max:100',
+            'numero_identificacion' => 'required|string|max:50|unique:empleados',
+            'fecha_nacimiento'      => 'required|date',
+            'numero_celular'        => 'required',
+            'direccion'             => 'required|string',
+            'dependencia_id'        => 'required|exists:dependencias,id',
+            'puesto_id'             => 'required|exists:puestos,id',
+            'id_jefe'               => 'nullable|exists:empleados,id',
+            'USUARIO_INGRESO'       => 'nullable|integer',
 
             // Datos del usuario
-            'usuario.nombre'         => 'required|string|max:100',
-            'usuario.usuario'        => [
-                'required','string','max:50',
-                Rule::unique('usuarios', 'usuario'),
-            ],
-            'usuario.contrasena'     => 'required|string|min:6',
-            'usuario.rol_id'         => 'required|exists:roles,id',
+            'usuario.nombre'        => 'required|string|max:100',
+            'usuario.usuario'       => ['required','string','max:50', Rule::unique('usuarios', 'usuario')],
+            'usuario.contrasena'    => 'required|string|min:6',
+            'usuario.rol_id'        => 'required|exists:roles,id',
         ]);
 
         try {
@@ -132,7 +130,7 @@ class EmpleadoController extends Controller
                     'usuario_id'            => $nuevoUsuario->id,
                     'dependencia_id'        => $validated['dependencia_id'],
                     'puesto_id'             => $validated['puesto_id'],
-                    'id_jefe'               => $validated['id_jefe'] ?? null,  // Nuevo campo
+                    'id_jefe'               => $validated['id_jefe'] ?? null,
                     'ESTADO'                => 1,
                     'USUARIO_INGRESO'       => $validated['USUARIO_INGRESO'] ?? null,
                     'FECHA_INGRESO'         => now(),
@@ -143,10 +141,7 @@ class EmpleadoController extends Controller
 
             [$nuevoUsuario, $empleado] = $result;
 
-            return response()->json([
-                'usuario'  => $nuevoUsuario,
-                'empleado' => $empleado,
-            ], 201);
+            return response()->json(['usuario'  => $nuevoUsuario, 'empleado' => $empleado], 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -161,28 +156,17 @@ class EmpleadoController extends Controller
         $empleado = Empleado::with('usuario')->findOrFail($id);
 
         $validated = $request->validate([
-            'nombre'                 => 'required|string|max:100',
-            'apellido'               => 'required|string|max:100',
-            'numero_identificacion'  => [
-                'required','string','max:50',
-                Rule::unique('empleados','numero_identificacion')->ignore($empleado->id),
-            ],
-            'fecha_nacimiento'       => 'required|date',
-            'numero_celular'         => 'required',
-            'direccion'              => 'required|string',
-            'dependencia_id'         => 'required|exists:dependencias,id',
-            'puesto_id'              => 'required|exists:puestos,id',
-            'id_jefe'                => [
-                'nullable',
-                'exists:empleados,id',
-                function ($attribute, $value, $fail) use ($id) {
-                    if ($value == $id) {
-                        $fail('Un empleado no puede ser jefe de sí mismo.');
-                    }
-                },
-            ],
-            'rol_id'                 => 'nullable|exists:roles,id',
-            'USUARIO_MODIFICA'       => 'nullable|integer',
+            'nombre'                => 'required|string|max:100',
+            'apellido'              => 'required|string|max:100',
+            'numero_identificacion' => ['required','string','max:50', Rule::unique('empleados','numero_identificacion')->ignore($empleado->id)],
+            'fecha_nacimiento'      => 'required|date',
+            'numero_celular'        => 'required',
+            'direccion'             => 'required|string',
+            'dependencia_id'        => 'required|exists:dependencias,id',
+            'puesto_id'             => 'required|exists:puestos,id',
+            'id_jefe'               => ['nullable', 'exists:empleados,id', function ($attribute, $value, $fail) use ($id) { if ($value == $id) { $fail('Un empleado no puede ser jefe de sí mismo.'); }}],
+            'rol_id'                => 'nullable|exists:roles,id',
+            'USUARIO_MODIFICA'      => 'nullable|integer',
         ]);
 
         try {
@@ -197,7 +181,7 @@ class EmpleadoController extends Controller
                     'direccion'             => $validated['direccion'],
                     'dependencia_id'        => $validated['dependencia_id'],
                     'puesto_id'             => $validated['puesto_id'],
-                    'id_jefe'               => $validated['id_jefe'] ?? null,  // Nuevo campo
+                    'id_jefe'               => $validated['id_jefe'] ?? null,
                     'USUARIO_MODIFICA'      => $validated['USUARIO_MODIFICA'] ?? null,
                     'FECHA_MODIFICA'        => now(),
                 ]);
@@ -210,12 +194,7 @@ class EmpleadoController extends Controller
             });
 
             // Refrescar y aplanar
-            $e = Empleado::with([
-                'dependencia:id,nombre',
-                'puesto:id,nombre',
-                'usuario.rol:id,nombre',
-                'jefe:id,nombre,apellido',
-            ])->find($empleado->id);
+            $e = Empleado::with(['dependencia:id,nombre', 'puesto:id,nombre', 'usuario.rol:id,nombre', 'jefe:id,nombre,apellido'])->find($empleado->id);
 
             $flat = [
                 'id'                    => $e->id,
@@ -271,16 +250,15 @@ class EmpleadoController extends Controller
         $tieneSubordinados = $empleado->subordinados()->where('ESTADO', 1)->exists();
         
         if ($tieneSubordinados) {
-            return response()->json([
-                'error' => 'No se puede desactivar este empleado porque tiene subordinados activos.'
-            ], 400);
+            return response()->json(['error' => 'No se puede desactivar este empleado porque tiene subordinados activos.'], 400);
         }
 
         $empleado->ESTADO = 0;
         $empleado->FECHA_MODIFICA = now();
-        $empleado->USUARIO_MODIFICA = 1; // TODO: reemplazar por el id del usuario autenticado
+        $empleado->USUARIO_MODIFICA = Auth::id(); // Usar Auth::id() aquí
         $empleado->save();
 
         return response()->json(['mensaje' => 'Empleado desactivado'], 200);
     }
 }
+

@@ -37,7 +37,9 @@ function App() {
       const res = await axios.get('http://127.0.0.1:8000/api/perfil', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setUsuario(res.data.usuario)
+      setUsuario(res.data)
+      // ✅ LÍNEA DE DEPURACIÓN AÑADIDA
+      console.log('Usuario autenticado y guardado en el estado:', res.data); 
     } catch (error) {
       localStorage.removeItem('token')
       setToken(null)
@@ -84,7 +86,7 @@ function App() {
         path="/"
         element={
           <RutaProtegida token={token} usuario={usuario}>
-            <DashboardLayout />
+            <DashboardLayout usuario={usuario} />
           </RutaProtegida>
         }
       >
@@ -115,3 +117,4 @@ function App() {
 }
 
 export default App
+

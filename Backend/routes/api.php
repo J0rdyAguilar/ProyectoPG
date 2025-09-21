@@ -74,10 +74,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // -------------------------------
     // Contratos
     // -------------------------------
-    Route::get('/contratos', [ContratoController::class, 'index']);                // listar (opcional: ?empleado_id=&estado=)
-    Route::post('/contratos', [ContratoController::class, 'store']);               // crear (con archivo)
-    Route::get('/contratos/{contrato}', [ContratoController::class, 'show']);      // ver detalle
-    Route::put('/contratos/{contrato}', [ContratoController::class, 'update']);    // actualizar (archivo opcional)
+    Route::get('/contratos', [ContratoController::class, 'index']);
+    Route::post('/contratos', [ContratoController::class, 'store']);
+    Route::get('/contratos/{contrato}', [ContratoController::class, 'show']);
+    Route::put('/contratos/{contrato}', [ContratoController::class, 'update']);
     Route::post('/contratos/{contrato}', [ContratoController::class, 'update']); 
 
     // Activar/Desactivar (manteniendo tu estilo "desactivar")
@@ -93,16 +93,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // -------------------------------
     // Permisos Laborales
     // -------------------------------
-    Route::get('/permisos-laborales', [PermisoLaboralController::class, 'index']);   // Listar todos los permisos
-    Route::post('/permisos-laborales', [PermisoLaboralController::class, 'store']);  // Crear un nuevo permiso
-    Route::get('/permisos-laborales/{id}', [PermisoLaboralController::class, 'show']); // Mostrar un permiso específico
-    Route::put('/permisos-laborales/{id}', [PermisoLaboralController::class, 'update']); // Actualizar un permiso
-    Route::put('/permisos-laborales/{id}/desactivar', [PermisoLaboralController::class, 'destroy']); // Desactivar un permiso (Borrado lógico)
+   /* Route::get('/permisos-laborales', [PermisoLaboralController::class, 'index']);
+    Route::post('/permisos-laborales', [PermisoLaboralController::class, 'store']);
+    Route::get('/permisos-laborales/{id}', [PermisoLaboralController::class, 'show']);
+    Route::put('/permisos-laborales/{id}', [PermisoLaboralController::class, 'update']);
+    Route::put('/permisos-laborales/{id}/desactivar', [PermisoLaboralController::class, 'destroy']);
 
     Route::put('/permisos-laborales/{id}/aprobar', [PermisoLaboralController::class, 'aprobar']);
     Route::put('/permisos-laborales/{id}/validar', [PermisoLaboralController::class, 'validar']);
 
     // Listar solicitudes (con filtros tipo, estado, empleado_id, etc)
+    Route::get('/solicitudes-laborales', [SolicitudLaboralController::class, 'index']);*/
+
+    // Listar solicitudes con filtros y paginación
     Route::get('/solicitudes-laborales', [SolicitudLaboralController::class, 'index']);
 
     // Crear nueva solicitud

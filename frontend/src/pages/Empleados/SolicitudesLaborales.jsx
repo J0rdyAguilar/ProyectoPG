@@ -1,3 +1,4 @@
+// frontend/src/pages/empleados/SolicitudesLaborales.jsx
 import { useEffect, useState, useMemo } from "react";
 import { PlusCircle } from "lucide-react";
 import {
@@ -11,8 +12,6 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-console.log("🚀 SolicitudesLaborales cargado");
-
 const tipos = [
   { value: "permiso", label: "Permiso" },
   { value: "licencia", label: "Licencia" },
@@ -24,7 +23,6 @@ export default function SolicitudesLaborales() {
   const [empleados, setEmpleados] = useState([]);
   const [lista, setLista] = useState([]);
   const [selectedEmpleado, setSelectedEmpleado] = useState("");
-  const [estadoFiltro, setEstadoFiltro] = useState("1");
   const [tipo, setTipo] = useState("permiso");
   const [motivo, setMotivo] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
@@ -42,11 +40,13 @@ export default function SolicitudesLaborales() {
     (async () => {
       try {
         const { data } = await axios.get(`${API_URL}/api/empleados`, {
-          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
           params: { page: 1, per_page: 500 },
         });
         const arr = Array.isArray(data?.data) ? data.data : data;
-        console.log("👥 Empleados cargados:", arr);
         setEmpleados(arr || []);
         if (arr?.length && !selectedEmpleado) {
           setSelectedEmpleado(String(arr[0].id));
@@ -63,8 +63,6 @@ export default function SolicitudesLaborales() {
     try {
       const data = await listarSolicitudes({
         empleado_id: selectedEmpleado,
-        estado: estadoFiltro,
-        tipo,
       });
       setLista(data.data || []);
     } catch (err) {
@@ -76,7 +74,7 @@ export default function SolicitudesLaborales() {
 
   useEffect(() => {
     if (selectedEmpleado) cargarSolicitudes();
-  }, [selectedEmpleado, estadoFiltro, tipo]);
+  }, [selectedEmpleado, tipo]);
 
   // Crear solicitud
   const onSubmit = async (e) => {
@@ -176,7 +174,7 @@ export default function SolicitudesLaborales() {
                 <option key={e.id} value={e.id}>
                   {e.nombre
                     ? `${e.id} - ${e.nombre} ${e.apellido || ""}`
-                    : `${e.id} - ${e.nombres || ""}`}
+                    : `${e.id} - ${e.nombres} ${e.apellidos || ""}`}
                 </option>
               ))}
             </select>
@@ -220,6 +218,7 @@ export default function SolicitudesLaborales() {
         </button>
       </form>
 
+      {/* Tabla */}
       <div className="bg-white border rounded-xl overflow-auto">
         <table className="min-w-full text-sm table-auto border-collapse">
           <thead className="bg-gray-100 text-left">
@@ -229,6 +228,8 @@ export default function SolicitudesLaborales() {
               <th className="px-4 py-2 w-64">Motivo</th>
               <th className="px-4 py-2 w-32">Inicio</th>
               <th className="px-4 py-2 w-32">Fin</th>
+              <th className="px-4 py-2 w-32">Aprobado por</th>
+              <th className="px-4 py-2 w-32">Validado por</th>
               <th className="px-4 py-2 w-28">Estado</th>
               <th className="px-4 py-2 w-40">Acciones</th>
             </tr>
@@ -236,7 +237,7 @@ export default function SolicitudesLaborales() {
           <tbody>
             {lista.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={9} className="px-4 py-6 text-center text-gray-500">
                   No hay solicitudes
                 </td>
               </tr>
@@ -246,36 +247,58 @@ export default function SolicitudesLaborales() {
                 <td className="px-4 py-2">{s.tipo}</td>
                 <td className="px-4 py-2">
                   {s.empleado
-                    ? `${s.empleado.id} - ${s.empleado.nombre || s.empleado.nombres} ${s.empleado.apellido || s.empleado.apellidos || ""}`
+                    ? `${s.empleado.id} - ${
+                        s.empleado.nombre || s.empleado.nombres
+                      } ${s.empleado.apellido || s.empleado.apellidos || ""}`
                     : "-"}
                 </td>
                 <td className="px-4 py-2 truncate max-w-xs">{s.motivo}</td>
-                <td className="px-4 py-2">{new Date(s.fecha_inicio).toLocaleDateString()}</td>
+                <td className="px-4 py-2">{formatDate(s.fecha_inicio)}</td>
+                <td className="px-4 py-2">{formatDate(s.fecha_fin)}</td>
                 <td className="px-4 py-2">
-                  {s.fecha_fin ? new Date(s.fecha_fin).toLocaleDateString() : "-"}
+                  {s.aprobador ? s.aprobador.usuario : "Pendiente"}
+                </td>
+                <td className="px-4 py-2">
+                  {s.validador ? s.validador.usuario : "Pendiente"}
                 </td>
                 <td className="px-4 py-2">
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
-                      s.estado ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-700"
+                      s.estado
+                        ? "bg-green-200 text-green-800"
+                        : "bg-yellow-200 text-yellow-800"
                     }`}
                   >
-                    {s.estado ? "Activo" : "Inactivo"}
+                    {s.estado ? "Activo" : "Pendiente"}
                   </span>
                 </td>
                 <td className="px-4 py-2 flex gap-2">
+                  {/* Jefe inmediato (rol_id = 2) puede aprobar */}
                   {rolId === 2 && !s.aprobado_por && (
-                    <button onClick={() => handleAprobar(s.id)} className="text-blue-600 hover:underline">
+                    <button
+                      onClick={() => handleAprobar(s.id)}
+                      className="text-blue-600 hover:underline"
+                    >
                       Aprobar
                     </button>
                   )}
+
+                  {/* RRHH (rol_id = 1) puede validar */}
                   {rolId === 1 && s.aprobado_por && !s.validado_por && (
-                    <button onClick={() => handleValidar(s.id)} className="text-green-600 hover:underline">
+                    <button
+                      onClick={() => handleValidar(s.id)}
+                      className="text-green-600 hover:underline"
+                    >
                       Validar
                     </button>
                   )}
+
+                  {/* Desactivar */}
                   {s.estado === 1 && (
-                    <button onClick={() => handleDesactivar(s.id)} className="text-red-600 hover:underline">
+                    <button
+                      onClick={() => handleDesactivar(s.id)}
+                      className="text-red-600 hover:underline"
+                    >
                       Desactivar
                     </button>
                   )}

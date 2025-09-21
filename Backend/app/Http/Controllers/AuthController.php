@@ -25,6 +25,9 @@ class AuthController extends Controller
 
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
+        // Carga la información del rol para la respuesta inicial del login
+        $usuario->load('rol');
+
         return response()->json([
             'token' => $token,
             'usuario' => [
@@ -36,11 +39,20 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * ✅ MÉTODO MEJORADO
+     * Este método ahora carga todas las relaciones necesarias para la página de perfil.
+     */
     public function perfil(Request $request)
     {
-        return response()->json([
-            'usuario' => $request->user()->load('rol')
-        ]);
+        // Obtiene el usuario autenticado
+        $usuario = $request->user();
+
+        // Carga las relaciones del rol y también las del empleado (puesto y dependencia)
+        $usuario->load('rol', 'empleado.puesto', 'empleado.dependencia');
+
+        // Devuelve el objeto de usuario completo con toda la información anidada
+        return response()->json($usuario);
     }
 
     public function logout(Request $request)
