@@ -18,10 +18,13 @@ class Empleado extends Model
         'fecha_nacimiento',
         'numero_celular',
         'direccion',
+        'genero',
+        'renglon_presupuestario',
+        'salario',
         'usuario_id',
         'dependencia_id',
         'puesto_id',
-        'id_jefe',  // Campo agregado para jerarquía
+        'id_jefe',
         'ESTADO',
         'USUARIO_INGRESO',
         'FECHA_INGRESO',
@@ -31,34 +34,37 @@ class Empleado extends Model
 
     public $timestamps = false;
 
-    // Relaciones existentes
+    // Relación con usuario
     public function usuario()
     {
         return $this->belongsTo(Usuario::class);
     }
 
+    // Relación con dependencia
     public function dependencia()
     {
         return $this->belongsTo(Dependencia::class);
     }
 
+    // Relación con puesto
     public function puesto()
     {
         return $this->belongsTo(Puesto::class);
     }
 
-    // Nuevas relaciones para jerarquía
+    // Relación con jefe inmediato
     public function jefe()
     {
-        return $this->belongsTo(Empleado::class, 'id_jefe');
+        return $this->belongsTo(Empleado::class, 'id_jefe')->withDefault();
     }
 
+    // Relación con subordinados
     public function subordinados()
     {
         return $this->hasMany(Empleado::class, 'id_jefe');
     }
 
-    // Métodos útiles para jerarquía
+    // Helpers
     public function esJefe()
     {
         return $this->subordinados()->where('ESTADO', 1)->exists();

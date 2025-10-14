@@ -19,7 +19,6 @@ class Usuario extends Authenticatable
         'usuario',
         'contrasena',
         'rol_id',
-        'puesto_id',
         'ESTADO',
         'USUARIO_INGRESO',
         'FECHA_INGRESO',
@@ -35,7 +34,7 @@ class Usuario extends Authenticatable
     public $timestamps = false;
 
     /**
-     * Para indicar a Laravel que usamos "contrasena" como campo de autenticación.
+     * Usar "contrasena" como campo de autenticación en lugar de "password"
      */
     public function getAuthPassword()
     {
@@ -43,7 +42,7 @@ class Usuario extends Authenticatable
     }
 
     /**
-     * Relación uno a uno con el modelo Empleado.
+     * Relación uno a uno con empleado
      */
     public function empleado()
     {
@@ -51,7 +50,7 @@ class Usuario extends Authenticatable
     }
 
     /**
-     * Relación muchos a uno con el modelo Rol.
+     * Relación muchos a uno con rol
      */
     public function rol()
     {

@@ -40,4 +40,16 @@ class DependenciaController extends Controller
 
         return response()->json(['mensaje' => 'Dependencia desactivada'], 200);
     }
+
+    public function show($id)
+    {
+    try {
+        $dependencia = \App\Models\Dependencia::findOrFail($id);
+        return response()->json($dependencia);
+        } catch (\Exception $e) {
+        \Log::error("Error al obtener dependencia: " . $e->getMessage());
+        return response()->json(['message' => 'Dependencia no encontrada'], 404);
+         }
+    }
+
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Usuario;
+use App\Models\Empleado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -11,12 +12,13 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'usuario' => 'required|string',
-            'contrasena' => 'required|string',
+            'usuario'     => 'required|string',
+            'contrasena'  => 'required|string',
         ]);
 
         $usuario = Usuario::where('usuario', $request->usuario)
             ->where('ESTADO', 1)
+            ->with('rol') // para traer rol en la misma consulta
             ->first();
 
         if (!$usuario || !Hash::check($request->contrasena, $usuario->contrasena)) {
@@ -25,36 +27,37 @@ class AuthController extends Controller
 
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
-        // Carga la información del rol para la respuesta inicial del login
-        $usuario->load('rol');
+        // Buscar el empleado vinculado
+        $empleado = Empleado::with(['puesto:id,nombre', 'dependencia:id,nombre', 'jefe:id,nombre,apellido'])
+            ->where('usuario_id', $usuario->id)
+            ->first();
 
         return response()->json([
-            'token' => $token,
-            'usuario' => [
-                'id' => $usuario->id,
-                'usuario' => $usuario->usuario,
-                'rol_id' => $usuario->rol_id,
+            'token'    => $token,
+            'usuario'  => [
+                'id'         => $usuario->id,
+                'usuario'    => $usuario->usuario,
+                'rol_id'     => $usuario->rol_id,
                 'rol_nombre' => $usuario->rol->nombre ?? null,
-            ]
+            ],
+            'empleado' => $empleado
         ]);
     }
 
     /**
-     * ✅ MÉTODO MEJORADO
-     * Este método ahora carga todas las relaciones necesarias para la página de perfil.
+     * Perfil del usuario autenticado
      */
     public function perfil(Request $request)
     {
-        // Obtiene el usuario autenticado
         $usuario = $request->user();
+        $usuario->load('rol', 'empleado.puesto', 'empleado.dependencia', 'empleado.jefe');
 
-        // Carga las relaciones del rol y también las del empleado (puesto y dependencia)
-        $usuario->load('rol', 'empleado.puesto', 'empleado.dependencia');
-
-        // Devuelve el objeto de usuario completo con toda la información anidada
         return response()->json($usuario);
     }
 
+    /**
+     * Logout: elimina todos los tokens activos del usuario
+     */
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();

@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dependencias', [DependenciaController::class, 'index']);
     Route::post('/dependencias', [DependenciaController::class, 'store']);
     Route::put('/dependencias/{id}/desactivar', [DependenciaController::class, 'desactivar']);
+    Route::get('/dependencias/{id}', [DependenciaController::class, 'show']);
+
 
     // -------------------------------
     // Puestos
@@ -90,21 +92,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Descargar archivo del contrato
     Route::get('/contratos/{contrato}/download', [ContratoController::class, 'download']);
 
-    // -------------------------------
-    // Permisos Laborales
-    // -------------------------------
-   /* Route::get('/permisos-laborales', [PermisoLaboralController::class, 'index']);
-    Route::post('/permisos-laborales', [PermisoLaboralController::class, 'store']);
-    Route::get('/permisos-laborales/{id}', [PermisoLaboralController::class, 'show']);
-    Route::put('/permisos-laborales/{id}', [PermisoLaboralController::class, 'update']);
-    Route::put('/permisos-laborales/{id}/desactivar', [PermisoLaboralController::class, 'destroy']);
-
-    Route::put('/permisos-laborales/{id}/aprobar', [PermisoLaboralController::class, 'aprobar']);
-    Route::put('/permisos-laborales/{id}/validar', [PermisoLaboralController::class, 'validar']);
-
-    // Listar solicitudes (con filtros tipo, estado, empleado_id, etc)
-    Route::get('/solicitudes-laborales', [SolicitudLaboralController::class, 'index']);*/
-
     // Listar solicitudes con filtros y paginación
     Route::get('/solicitudes-laborales', [SolicitudLaboralController::class, 'index']);
 
@@ -127,4 +114,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     // -------------------------------
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    
 });

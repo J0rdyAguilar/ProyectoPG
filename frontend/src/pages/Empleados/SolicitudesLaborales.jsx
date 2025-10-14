@@ -1,6 +1,5 @@
-// frontend/src/pages/empleados/SolicitudesLaborales.jsx
 import { useEffect, useState, useMemo } from "react";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Search } from "lucide-react";
 import {
   listarSolicitudes,
   crearSolicitud,
@@ -21,6 +20,8 @@ const tipos = [
 
 export default function SolicitudesLaborales() {
   const [empleados, setEmpleados] = useState([]);
+  const [empleadosFiltrados, setEmpleadosFiltrados] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
   const [lista, setLista] = useState([]);
   const [selectedEmpleado, setSelectedEmpleado] = useState("");
   const [tipo, setTipo] = useState("permiso");
@@ -28,14 +29,42 @@ export default function SolicitudesLaborales() {
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rolId, setRolId] = useState(0);
 
   const token = useMemo(
     () => localStorage.getItem("token") || localStorage.getItem("userToken"),
     []
   );
-  const rolId = parseInt(localStorage.getItem("rol_id") || "0");
 
-  // Cargar empleados
+  // ✅ Detectar rol del usuario
+  useEffect(() => {
+    try {
+      const keys = ["user", "usuario", "userData", "empleado"];
+      let id = null;
+      for (const key of keys) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const obj = JSON.parse(raw);
+        id =
+          obj?.rol_id ||
+          obj?.rol?.id ||
+          obj?.usuario?.rol_id ||
+          obj?.usuario?.rol?.id ||
+          obj?.user?.rol_id ||
+          obj?.user?.rol?.id ||
+          obj?.empleado?.rol_id ||
+          obj?.empleado?.rol?.id ||
+          null;
+        if (id) break;
+      }
+      setRolId(Number(id) || 0);
+      console.log("✅ Rol detectado:", id);
+    } catch (e) {
+      console.error("Error detectando rol:", e);
+    }
+  }, []);
+
+  // 📥 Cargar empleados
   useEffect(() => {
     (async () => {
       try {
@@ -48,6 +77,7 @@ export default function SolicitudesLaborales() {
         });
         const arr = Array.isArray(data?.data) ? data.data : data;
         setEmpleados(arr || []);
+        setEmpleadosFiltrados(arr || []);
         if (arr?.length && !selectedEmpleado) {
           setSelectedEmpleado(String(arr[0].id));
         }
@@ -57,7 +87,20 @@ export default function SolicitudesLaborales() {
     })();
   }, [API_URL, token]);
 
-  // Cargar solicitudes
+  // 🔍 Filtrar empleados al escribir
+  useEffect(() => {
+    const term = busqueda.toLowerCase();
+    const filtrados = empleados.filter(
+      (e) =>
+        e.nombre?.toLowerCase().includes(term) ||
+        e.apellido?.toLowerCase().includes(term) ||
+        e.nombres?.toLowerCase().includes(term) ||
+        e.apellidos?.toLowerCase().includes(term)
+    );
+    setEmpleadosFiltrados(filtrados);
+  }, [busqueda, empleados]);
+
+  // 📥 Cargar solicitudes
   const cargarSolicitudes = async () => {
     setLoading(true);
     try {
@@ -76,7 +119,7 @@ export default function SolicitudesLaborales() {
     if (selectedEmpleado) cargarSolicitudes();
   }, [selectedEmpleado, tipo]);
 
-  // Crear solicitud
+  // 📝 Crear solicitud
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!selectedEmpleado || !motivo || !fechaInicio) {
@@ -93,7 +136,7 @@ export default function SolicitudesLaborales() {
         fecha_fin: fechaFin,
         empleado_id: selectedEmpleado,
       });
-      alert("Solicitud creada");
+      alert("Solicitud creada correctamente");
       setMotivo("");
       setFechaInicio("");
       setFechaFin("");
@@ -106,7 +149,7 @@ export default function SolicitudesLaborales() {
     }
   };
 
-  // Acciones
+  // ⚙️ Acciones
   const handleAprobar = async (id) => {
     try {
       await aprobarSolicitud(id);
@@ -126,6 +169,7 @@ export default function SolicitudesLaborales() {
   };
 
   const handleDesactivar = async (id) => {
+    if (!confirm("¿Seguro que deseas desactivar esta solicitud?")) return;
     try {
       await desactivarSolicitud(id);
       cargarSolicitudes();
@@ -134,17 +178,48 @@ export default function SolicitudesLaborales() {
     }
   };
 
-  // Formateo de fechas
+  // 🔄 Determinar estado visual
+  const getEstadoTexto = (s) => {
+    if (s.estado === 0) return "Inactivo";
+    if (!s.aprobado_por && !s.validado_por) return "Pendiente";
+    if (s.aprobado_por && !s.validado_por) return "Aprobado";
+    if (s.aprobado_por && s.validado_por) return "Validado";
+    return "Desconocido";
+  };
+
+  const getEstadoClase = (s) => {
+    const estado = getEstadoTexto(s);
+    switch (estado) {
+      case "Pendiente":
+        return "bg-yellow-200 text-yellow-800";
+      case "Aprobado":
+        return "bg-blue-200 text-blue-800";
+      case "Validado":
+        return "bg-green-200 text-green-800";
+      case "Inactivo":
+        return "bg-red-200 text-red-800";
+      default:
+        return "bg-gray-200 text-gray-700";
+    }
+  };
+
+  // 📅 Formateo de fechas
   const formatDate = (date) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString("es-GT");
   };
 
+  // 🔒 Permisos
+  const puedeCrear = rolId === 1 || rolId === 2 || rolId === 3;
+  const puedeAprobar = rolId === 2;
+  const puedeValidar = rolId === 1;
+  const puedeDesactivar = rolId === 1 || rolId === 2;
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Solicitudes Laborales</h1>
 
-      {/* Formulario */}
+      {/* 🧾 Formulario */}
       <form onSubmit={onSubmit} className="bg-white border rounded-xl p-4 mb-6">
         <h2 className="text-lg font-semibold mb-4">Nueva solicitud</h2>
         <div className="grid md:grid-cols-3 gap-4">
@@ -154,6 +229,7 @@ export default function SolicitudesLaborales() {
               className="w-full border rounded px-3 py-2"
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
+              disabled={!puedeCrear}
             >
               {tipos.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -162,15 +238,31 @@ export default function SolicitudesLaborales() {
               ))}
             </select>
           </div>
+
           <div>
-            <label className="text-sm">Empleado *</label>
+            <label className="text-sm flex justify-between items-center">
+              Empleado *
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <Search size={14} /> Buscar
+              </span>
+            </label>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2 mb-1"
+              placeholder="Escriba un nombre o apellido..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              disabled={!puedeCrear}
+            />
+
             <select
               className="w-full border rounded px-3 py-2"
               value={selectedEmpleado}
               onChange={(e) => setSelectedEmpleado(e.target.value)}
+              disabled={!puedeCrear}
             >
               <option value="">-- Selecciona empleado --</option>
-              {empleados.map((e) => (
+              {empleadosFiltrados.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.nombre
                     ? `${e.id} - ${e.nombre} ${e.apellido || ""}`
@@ -179,6 +271,7 @@ export default function SolicitudesLaborales() {
               ))}
             </select>
           </div>
+
           <div>
             <label className="text-sm">Motivo *</label>
             <input
@@ -187,8 +280,10 @@ export default function SolicitudesLaborales() {
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               required
+              disabled={!puedeCrear}
             />
           </div>
+
           <div>
             <label className="text-sm">Inicio *</label>
             <input
@@ -197,8 +292,10 @@ export default function SolicitudesLaborales() {
               value={fechaInicio}
               onChange={(e) => setFechaInicio(e.target.value)}
               required
+              disabled={!puedeCrear}
             />
           </div>
+
           <div>
             <label className="text-sm">Fin</label>
             <input
@@ -206,19 +303,26 @@ export default function SolicitudesLaborales() {
               className="w-full border rounded px-3 py-2"
               value={fechaFin}
               onChange={(e) => setFechaFin(e.target.value)}
+              disabled={!puedeCrear}
             />
           </div>
         </div>
+
         <button
           type="submit"
-          className="mt-4 flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-full hover:bg-green-700"
+          disabled={!puedeCrear}
+          className={`mt-4 flex items-center gap-2 px-5 py-2 rounded-full font-medium transition-colors ${
+            puedeCrear
+              ? "bg-green-600 text-white hover:bg-green-700"
+              : "bg-gray-300 text-gray-600 cursor-not-allowed"
+          }`}
         >
           <PlusCircle size={18} />
           Guardar solicitud
         </button>
       </form>
 
-      {/* Tabla */}
+      {/* 📋 Tabla */}
       <div className="bg-white border rounded-xl overflow-auto">
         <table className="min-w-full text-sm table-auto border-collapse">
           <thead className="bg-gray-100 text-left">
@@ -247,9 +351,7 @@ export default function SolicitudesLaborales() {
                 <td className="px-4 py-2">{s.tipo}</td>
                 <td className="px-4 py-2">
                   {s.empleado
-                    ? `${s.empleado.id} - ${
-                        s.empleado.nombre || s.empleado.nombres
-                      } ${s.empleado.apellido || s.empleado.apellidos || ""}`
+                    ? `${s.empleado.id} - ${s.empleado.nombre || s.empleado.nombres} ${s.empleado.apellido || s.empleado.apellidos || ""}`
                     : "-"}
                 </td>
                 <td className="px-4 py-2 truncate max-w-xs">{s.motivo}</td>
@@ -263,18 +365,15 @@ export default function SolicitudesLaborales() {
                 </td>
                 <td className="px-4 py-2">
                   <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      s.estado
-                        ? "bg-green-200 text-green-800"
-                        : "bg-yellow-200 text-yellow-800"
-                    }`}
+                    className={`text-xs px-2 py-1 rounded-full ${getEstadoClase(
+                      s
+                    )}`}
                   >
-                    {s.estado ? "Activo" : "Pendiente"}
+                    {getEstadoTexto(s)}
                   </span>
                 </td>
                 <td className="px-4 py-2 flex gap-2">
-                  {/* Jefe inmediato (rol_id = 2) puede aprobar */}
-                  {rolId === 2 && !s.aprobado_por && (
+                  {puedeAprobar && !s.aprobado_por && s.estado === 1 && (
                     <button
                       onClick={() => handleAprobar(s.id)}
                       className="text-blue-600 hover:underline"
@@ -283,18 +382,19 @@ export default function SolicitudesLaborales() {
                     </button>
                   )}
 
-                  {/* RRHH (rol_id = 1) puede validar */}
-                  {rolId === 1 && s.aprobado_por && !s.validado_por && (
-                    <button
-                      onClick={() => handleValidar(s.id)}
-                      className="text-green-600 hover:underline"
-                    >
-                      Validar
-                    </button>
-                  )}
+                  {puedeValidar &&
+                    s.aprobado_por &&
+                    !s.validado_por &&
+                    s.estado === 1 && (
+                      <button
+                        onClick={() => handleValidar(s.id)}
+                        className="text-green-600 hover:underline"
+                      >
+                        Validar
+                      </button>
+                    )}
 
-                  {/* Desactivar */}
-                  {s.estado === 1 && (
+                  {puedeDesactivar && s.estado === 1 && (
                     <button
                       onClick={() => handleDesactivar(s.id)}
                       className="text-red-600 hover:underline"

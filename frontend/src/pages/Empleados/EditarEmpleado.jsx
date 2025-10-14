@@ -1,4 +1,3 @@
-// src/pages/EditarEmpleado.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { api } from "@/api/axios";
@@ -20,12 +19,13 @@ export default function EditarEmpleado() {
     fecha_nacimiento: "",
     numero_celular: "",
     direccion: "",
+    genero: "",
+    renglon_presupuestario: "",
+    salario: "",
     dependencia_id: "",
     puesto_id: "",
     id_jefe: "",
-    // para actualizar rol del usuario
     rol_id: "",
-    // solo lectura
     usuario: { nombre: "", usuario: "" },
   });
 
@@ -34,29 +34,25 @@ export default function EditarEmpleado() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
-  /** Carga puestos por dependencia, con fallback a filtrar en cliente */
+  // --- Carga puestos por dependencia ---
   const loadPuestosByDep = async (depId) => {
     if (!depId) {
       setPuestos([]);
       return;
     }
     try {
-      // 1) Intento: que el backend filtre por query param
       const r = await api.get("/puestos", { params: { dependencia_id: depId } });
       if (Array.isArray(r.data)) {
         setPuestos(r.data);
         return;
       }
-      // si no es array, continúa al fallback
-    } catch {
-      // ignora y cae al fallback
-    }
-    // 2) Fallback: trae todos y filtra en cliente
+    } catch {}
     try {
       const rAll = await api.get("/puestos");
       const only = (rAll.data || []).filter(
-        (p) => String(p.dependencia_id) === String(depId) ||
-               String(p?.dependencia?.id) === String(depId)
+        (p) =>
+          String(p.dependencia_id) === String(depId) ||
+          String(p?.dependencia?.id) === String(depId)
       );
       setPuestos(only);
     } catch {
@@ -64,7 +60,7 @@ export default function EditarEmpleado() {
     }
   };
 
-  /** Carga inicial */
+  // --- Carga inicial ---
   useEffect(() => {
     (async () => {
       try {
@@ -73,7 +69,7 @@ export default function EditarEmpleado() {
           api.get("/dependencias"),
           api.get("/roles"),
           api.get(`/empleados/${id}`),
-          api.get(`/posibles-jefes/${id}`), // Excluye al empleado actual
+          api.get(`/posibles-jefes/${id}`),
         ]);
 
         setDeps(d.data || []);
@@ -81,8 +77,7 @@ export default function EditarEmpleado() {
         setPosiblesJefes(j.data || []);
 
         const emp = e.data || {};
-        const depId =
-          emp.dependencia_id ?? emp?.dependencia?.id ?? "";
+        const depId = emp.dependencia_id ?? emp?.dependencia?.id ?? "";
 
         setF({
           nombre: emp.nombre || "",
@@ -91,6 +86,9 @@ export default function EditarEmpleado() {
           fecha_nacimiento: (emp.fecha_nacimiento || "").slice(0, 10),
           numero_celular: emp.numero_celular || "",
           direccion: emp.direccion || "",
+          genero: emp.genero || "",
+          renglon_presupuestario: emp.renglon_presupuestario || "",
+          salario: emp.salario || "",
           dependencia_id: depId,
           puesto_id: emp.puesto_id ?? emp?.puesto?.id ?? "",
           id_jefe: emp.id_jefe || "",
@@ -101,7 +99,6 @@ export default function EditarEmpleado() {
           },
         });
 
-        // Cargar puestos de la dependencia inicial
         await loadPuestosByDep(depId);
       } catch {
         setErr("No se pudo cargar el empleado.");
@@ -111,10 +108,10 @@ export default function EditarEmpleado() {
     })();
   }, [id]);
 
-  /** Cuando cambia la dependencia, recarga puestos y limpia puesto seleccionado */
+  // --- Si cambia la dependencia, limpia puesto y recarga ---
   useEffect(() => {
     const depId = f.dependencia_id;
-    setF((s) => ({ ...s, puesto_id: "" })); // limpia selección
+    setF((s) => ({ ...s, puesto_id: "" }));
     loadPuestosByDep(depId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [f.dependencia_id]);
@@ -123,7 +120,8 @@ export default function EditarEmpleado() {
 
   const submit = async (e) => {
     e.preventDefault();
-    setErr(""); setOk("");
+    setErr("");
+    setOk("");
     try {
       setSaving(true);
       const payload = {
@@ -133,12 +131,16 @@ export default function EditarEmpleado() {
         fecha_nacimiento: f.fecha_nacimiento,
         numero_celular: f.numero_celular,
         direccion: f.direccion,
+        genero: f.genero,
+        renglon_presupuestario: f.renglon_presupuestario,
+        salario: f.salario,
         dependencia_id: f.dependencia_id || null,
         puesto_id: f.puesto_id || null,
         id_jefe: f.id_jefe || null,
         rol_id: f.rol_id || null,
         USUARIO_MODIFICA: 1,
       };
+
       await api.put(`/empleados/${id}`, payload);
       setOk("Cambios guardados correctamente");
       setTimeout(() => nav("/empleados", { replace: true }), 700);
@@ -176,7 +178,7 @@ export default function EditarEmpleado() {
 
       {/* Alerts */}
       {err && <div className="card p-3 border-red-200 bg-red-50 text-red-700">{err}</div>}
-      {ok  && <div className="card p-3 border-emerald-200 bg-emerald-50 text-emerald-700">{ok}</div>}
+      {ok && <div className="card p-3 border-emerald-200 bg-emerald-50 text-emerald-700">{ok}</div>}
 
       {/* Form */}
       <form onSubmit={submit} className="card p-6 space-y-6">
@@ -209,6 +211,43 @@ export default function EditarEmpleado() {
               <Textarea disabled={busy} rows={2} value={f.direccion} onChange={(e) => on("direccion", e.target.value)} />
             </Field>
 
+            {/* Género */}
+            <Field label="Género">
+              <Select
+                disabled={busy}
+                value={f.genero}
+                onChange={(e) => on("genero", e.target.value)}
+              >
+                <option value="">Seleccione...</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+              </Select>
+            </Field>
+
+            {/* Renglón presupuestario */}
+            <Field label="Renglón presupuestario">
+              <Input
+                disabled={busy}
+                value={f.renglon_presupuestario}
+                onChange={(e) => on("renglon_presupuestario", e.target.value)}
+                placeholder="Ej. 011"
+              />
+            </Field>
+
+            {/* Salario */}
+            <Field label="Salario (Q)">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                disabled={busy}
+                value={f.salario}
+                onChange={(e) => on("salario", e.target.value)}
+                placeholder="Ej. 3500.00"
+              />
+            </Field>
+
+            {/* Dependencia */}
             <Field label="Dependencia">
               <Select
                 disabled={busy}
@@ -222,6 +261,7 @@ export default function EditarEmpleado() {
               </Select>
             </Field>
 
+            {/* Puesto */}
             <Field label="Puesto">
               <Select
                 disabled={busy || !f.dependencia_id}
@@ -308,8 +348,7 @@ export default function EditarEmpleado() {
   );
 }
 
-/* ---------- helpers UI (mismos estilos que "Nuevo empleado") ---------- */
-
+/* ---------- Helpers UI ---------- */
 function Field({ label, className = "", children }) {
   return (
     <label className={`flex flex-col gap-1 ${className}`}>
@@ -318,15 +357,12 @@ function Field({ label, className = "", children }) {
     </label>
   );
 }
-
 function Input({ className = "", ...props }) {
   return <input {...props} className={`input ${className}`} />;
 }
-
 function Textarea({ className = "", ...props }) {
   return <textarea {...props} className={`textarea ${className}`} />;
 }
-
 function Select({ className = "", ...props }) {
   return <select {...props} className={`select ${className}`} />;
 }

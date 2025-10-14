@@ -1,4 +1,3 @@
-// src/pages/Empleados.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { http } from "@/api/http"; // baseURL = tu /api
@@ -12,13 +11,10 @@ export default function Empleados() {
   }, []);
 
   const handleDesactivar = async (id) => {
-    if (!confirm("¿Estás seguro de que quieres desactivar este empleado?")) {
-      return;
-    }
+    if (!confirm("¿Estás seguro de que quieres desactivar este empleado?")) return;
 
     try {
       await http.put(`/empleados/${id}/desactivar`);
-      // Remover el empleado de la lista local (ya no aparecerá en la tabla)
       setData((prevData) => prevData.filter((emp) => emp.id !== id));
       alert("Empleado desactivado correctamente");
     } catch (error) {
@@ -27,15 +23,21 @@ export default function Empleados() {
     }
   };
 
-  useEffect(() => {
-    http.get("/empleados").then((r) => setData(r.data));
-  }, []);
-
   const rows = useMemo(() => {
     const term = q.toLowerCase().trim();
     if (!term) return data;
     return data.filter((e) =>
-      [e.nombre, e.apellido, e.numero_identificacion, e.dependencia, e.puesto, e.rol, e.jefe]
+      [
+        e.nombre,
+        e.apellido,
+        e.numero_identificacion,
+        e.dependencia,
+        e.puesto,
+        e.rol,
+        e.jefe,
+        e.genero,
+        e.renglon_presupuestario,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(term))
     );
@@ -61,14 +63,17 @@ export default function Empleados() {
 
       {/* Tabla */}
       <div className="table-wrap">
-        <table className="min-w-[1200px] w-full">
+        <table className="min-w-[1300px] w-full">
           <thead className="thead">
             <tr>
               <th className="th">ID</th>
               <th className="th">Nombre</th>
               <th className="th">DPI</th>
+              <th className="th">Género</th>
               <th className="th">Celular</th>
               <th className="th">Dirección</th>
+              <th className="th">Renglón</th>
+              <th className="th">Salario (Q)</th>
               <th className="th">Puesto</th>
               <th className="th">Dependencia</th>
               <th className="th">Jefe inmediato</th>
@@ -88,11 +93,15 @@ export default function Empleados() {
                 </td>
 
                 <td className="td">{e.numero_identificacion}</td>
+                <td className="td">{e.genero || "—"}</td>
                 <td className="td">{e.numero_celular}</td>
 
                 <td className="td max-w-[320px] truncate" title={e.direccion || ""}>
                   {e.direccion}
                 </td>
+
+                <td className="td">{e.renglon_presupuestario || "—"}</td>
+                <td className="td">{e.salario ? `Q ${Number(e.salario).toFixed(2)}` : "—"}</td>
 
                 <td className="td">
                   <span className="badge">{e.puesto}</span>
@@ -121,7 +130,7 @@ export default function Empleados() {
                   </span>
                 </td>
 
-                {/* Acciones: Editar + Desactivar con mismo estilo */}
+                {/* Acciones iguales que antes */}
                 <td className="td">
                   <div className="flex items-center gap-2">
                     <Link to={`/empleados/editar/${e.id}`} className="btn-ghost">
@@ -141,7 +150,7 @@ export default function Empleados() {
 
             {!rows.length && (
               <tr>
-                <td colSpan="11" className="py-10 text-center text-ink-muted">
+                <td colSpan="14" className="py-10 text-center text-ink-muted">
                   Sin resultados
                 </td>
               </tr>
@@ -152,4 +161,3 @@ export default function Empleados() {
     </div>
   );
 }
-

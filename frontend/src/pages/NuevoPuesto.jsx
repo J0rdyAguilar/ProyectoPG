@@ -61,7 +61,7 @@ export default function NuevoPuesto() {
         <h1 className="text-2xl font-semibold">Registrar nuevo puesto</h1>
         <button
           onClick={() => nav("/puestos")}
-          className="text-sm text-blue-600 hover:underline"
+          className="btn-ghost inline-flex h-10 items-center gap-2"
         >
           Volver
         </button>

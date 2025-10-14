@@ -6,7 +6,7 @@
   left: 0;
   width: 100%;
   height: 100vh;
-  background-color: #e0f0df;
+  background-color: #7fd579;
   display: flex;
   flex-direction: column; /* <-- ¡CAMBIO IMPORTANTE AQUÍ! Para que los elementos se apilen verticalmente */
   justify-content: center;

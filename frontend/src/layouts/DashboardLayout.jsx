@@ -1,220 +1,324 @@
-// src/layouts/DashboardLayout.jsx (Código completo y final con menú de perfil y permisos)
-
 import { Outlet, NavLink, useNavigate, useLocation, Link } from "react-router-dom";
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList } from "lucide-react";
 import { useEffect, useState, Fragment } from "react";
 import clsx from "clsx";
-import { Menu, Transition } from '@headlessui/react';
+import { Menu, Transition } from "@headlessui/react";
 import {
-  Menu as MenuIcon,
-  BarChart3,
-  Users,
-  Layers,
-  Briefcase,
-  Shield,
-  UserRound,
-  FileText,
-  LogOut,
-  ChevronDown,
-  List,
-  CalendarClock, // <-- 1. Ícono importado
+  Menu as MenuIcon,
+  BarChart3,
+  Users,
+  Layers,
+  Briefcase,
+  Shield,
+  UserRound,
+  FileText,
+  LogOut,
+  ChevronDown,
+  List,
 } from "lucide-react";
 import { logout } from "@/api/auth";
+import logoMuni from "../assets/logo-muni.png";
 
-// Item base para ítems simples del sidebar
+/* ================== COMPONENTES ================== */
+
 const NavItem = ({ to, icon: Icon, label, open }) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) =>
-      clsx(
-        "sidebar-item",
-        isActive && "sidebar-item--active",
-        !open && "justify-center"
-      )
-    }
-    title={!open ? label : undefined}
-  >
-    <Icon size={20} />
-    {open && <span className="font-medium">{label}</span>}
-  </NavLink>
+  <NavLink
+    to={to}
+    className={({ isActive }) =>
+      clsx(
+        "flex items-center gap-3 rounded-lg p-2 transition-colors duration-150",
+        isActive
+          ? "bg-green-600 text-white font-semibold"
+          : "text-white/90 hover:bg-green-600 hover:text-white",
+        !open && "justify-center"
+      )
+    }
+    title={!open ? label : undefined}
+  >
+    <Icon size={20} />
+    {open && (
+      <span className="truncate text-sm font-medium whitespace-nowrap overflow-hidden">
+        {label}
+      </span>
+    )}
+  </NavLink>
 );
 
-// Componente SubItem con estilos para el submenú
-const SubItem = ({ to, icon: Icon, label }) => (
-  <NavLink
-    end
-    to={to}
-    className={({ isActive }) =>
-      clsx(
-        "flex items-center w-full p-2 pl-3 my-1 text-sm font-medium rounded-lg transition-colors duration-150",
-        isActive
-          ? "bg-emerald-100 text-emerald-700 font-semibold"
-          : "text-slate-600 hover:bg-emerald-50"
-      )
-    }
-  >
-    {Icon && <Icon size={16} className="mr-3" />}
-    <span>{label}</span>
-  </NavLink>
+const SubItem = ({ to, icon: Icon, label, open }) => (
+  <NavLink
+    end
+    to={to}
+    className={({ isActive }) =>
+      clsx(
+        "flex items-center w-full p-2 pl-3 my-1 text-sm font-medium rounded-lg transition-colors duration-150",
+        isActive
+          ? "bg-green-500 text-white font-semibold"
+          : "text-white/90 hover:bg-green-600",
+        !open && "justify-center"
+      )
+    }
+    title={!open ? label : undefined}
+  >
+    {Icon && <Icon size={16} className="mr-3 flex-shrink-0" />}
+    {open && (
+      <span className="truncate text-sm whitespace-nowrap overflow-hidden">
+        {label}
+      </span>
+    )}
+  </NavLink>
 );
 
+/* ================== LAYOUT PRINCIPAL ================== */
 
-export default function DashboardLayout() {
-  const [open, setOpen] = useState(true);
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
+export default function DashboardLayout({ usuario }) {
+  // 📱 Sidebar cerrado por defecto en móvil, abierto en pantallas grandes
+  const [open, setOpen] = useState(() => window.innerWidth >= 768);
 
-  const isInEmpleados = pathname.startsWith("/empleados");
-  const [openEmp, setOpenEmp] = useState(isInEmpleados);
-  useEffect(() => setOpenEmp(isInEmpleados), [isInEmpleados]);
+  // Detectar cambios de tamaño de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) setOpen(true);
+      else setOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  const handleLogout = async () => {
-    const ok = window.confirm("¿Seguro que deseas cerrar sesión?");
-    if (!ok) return;
-    try {
-      await logout();
-    } finally {
-      localStorage.removeItem("token");
-      navigate("/login", { replace: true });
-    }
-  };
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
-  return (
-    <div className="min-h-screen flex bg-bg text-ink">
-      {/* SIDEBAR */}
-      <aside
-        className={clsx(
-          "bg-bg border-r border-soft transition-all duration-300 p-4 sticky top-0 h-screen hidden md:block",
-          open ? "w-64" : "w-20"
-        )}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl2 bg-primary text-white grid place-items-center font-bold">E</div>
-            {open && <span className="font-semibold text-lg whitespace-nowrap">Muni de Cuilco</span>}
-          </div>
-          <button
-            className="p-2 rounded-lg hover:bg-primary-50 text-primary-700"
-            onClick={() => setOpen((o) => !o)}
-            aria-label="Alternar sidebar"
-            title="Alternar sidebar"
-          >
-            <MenuIcon size={18} />
-          </button>
-        </div>
+  const isInEmpleados = pathname.startsWith("/empleados");
+  const [openEmp, setOpenEmp] = useState(isInEmpleados);
+  useEffect(() => setOpenEmp(isInEmpleados), [isInEmpleados]);
 
-        {/* NAV LINKS */}
-        <nav className="flex flex-col gap-1">
-          <NavItem to="/dashboard" icon={BarChart3} label="Dashboard" open={open} />
+  const handleLogout = async () => {
+    const ok = window.confirm("¿Seguro que deseas cerrar sesión?");
+    if (!ok) return;
+    try {
+      await logout();
+    } finally {
+      localStorage.removeItem("token");
+      navigate("/login", { replace: true });
+    }
+  };
 
-          <button
-            type="button"
-            onClick={() => setOpenEmp((v) => !v)}
-            className={clsx(
-              "sidebar-item w-full justify-between",
-              !open && "justify-center",
-              isInEmpleados && "sidebar-item--active"
-            )}
-            title={!open ? "Empleados" : undefined}
-          >
-            <span className="flex items-center gap-3">
-              <Users size={20} />
-              {open && <span className="font-medium">Empleados</span>}
-            </span>
-            {open && <ChevronDown size={18} className={clsx("transition-transform", openEmp && "rotate-180")} />}
-          </button>
+  const rolId = usuario?.rol_id;
+  const isRRHH = rolId === 1;
+  const isJefe = rolId === 2;
+  const isUsuario = rolId === 3;
 
-          {open && openEmp && (
-            <div role="group" className="mt-1 mb-2 ml-4 mr-2">
-              <SubItem to="/empleados" icon={List} label="Listado" />
-              <SubItem to="/empleados/contratos" icon={FileText} label="Contratos" />
-              {/* -- 2. Enlace añadido -- */}
-              
-              <SubItem to="/empleados/solicitudes" icon={ClipboardList} label="Solicitudes" />
-            </div>
-          )}
+  return (
+    <div className="min-h-screen flex bg-bg text-ink relative">
+      {/* ===== SIDEBAR ===== */}
+      <aside
+        className={clsx(
+          "transition-all duration-300 p-4 fixed md:sticky top-0 h-screen flex flex-col text-white bg-green-700 z-40",
+          open ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20",
+          "md:flex"
+        )}
+      >
+        {/* LOGO */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2 overflow-hidden w-full">
+            <div
+              className={clsx(
+                "flex items-center justify-center overflow-hidden transition-all duration-300 flex-shrink-0 rounded-full bg-white",
+                open ? "w-10 h-10" : "w-12 h-12 mx-auto"
+              )}
+            >
+              <img
+                src={logoMuni}
+                alt="Logo Municipalidad de Cuilco"
+                className={clsx(
+                  "object-contain transition-all duration-300",
+                  open ? "w-9 h-9" : "w-11 h-11"
+                )}
+              />
+            </div>
+            {open && (
+              <span className="font-semibold text-lg text-white whitespace-nowrap overflow-hidden">
+                Muni de Cuilco
+              </span>
+            )}
+          </div>
 
-          <NavItem to="/dependencias" icon={Layers} label="Dependencias" open={open} />
-          <NavItem to="/puestos" icon={Briefcase} label="Puestos" open={open} />
-          <NavItem to="/roles" icon={Shield} label="Roles" open={open} />
-          
-        </nav>
-      </aside>
+          {/* Botón de cerrar en móvil */}
+          <button
+            className="p-2 rounded-lg hover:bg-green-600 text-white/80 flex-shrink-0 md:hidden"
+            onClick={() => setOpen(false)}
+          >
+            <MenuIcon size={18} />
+          </button>
+        </div>
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* TOPBAR */}
-        <header className="h-16 border-b border-soft bg-card sticky top-0 z-20">
-          <div className="h-full container flex items-center justify-between">
-            <div className="flex items-center gap-3 md:gap-4">
-              <button
-                className="md:hidden p-2 rounded-lg hover:bg-primary-50 text-primary-700"
-                onClick={() => setOpen((o) => !o)}
-                aria-label="Abrir menú"
-              >
-                <MenuIcon size={20} />
-              </button>
-              <div className="text-lg font-semibold">Dashboard</div>
-            </div>
+        {/* NAVIGATION */}
+        <nav className="flex flex-col gap-1 overflow-hidden">
+          <NavItem to="/dashboard" icon={BarChart3} label="Dashboard" open={open} />
 
-            <div className="flex items-center gap-3">
-              <input
-                className="bg-white border border-soft rounded-xl2 px-3 h-10 outline-none w-40 md:w-64 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
-                placeholder="Buscar..."
-              />
-              <Menu as="div" className="relative">
-                <Menu.Button className="w-9 h-9 bg-primary text-white rounded-full grid place-items-center hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                  <UserRound size={20} />
-                </Menu.Button>
-                <Transition
-                  as={Fragment}
-                  enter="transition ease-out duration-100"
-                  enterFrom="transform opacity-0 scale-95"
-                  enterTo="transform opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="transform opacity-100 scale-100"
-                  leaveTo="transform opacity-0 scale-95"
-                >
-                  <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <div className="px-1 py-1">
-                      <Menu.Item>
-                        {({ active }) => (
-                          <Link
-                            to="/perfil"
-                            className={`${active ? 'bg-emerald-500 text-white' : 'text-gray-900'} group flex rounded-md items-center w-full px-2 py-2 text-sm`}
-                          >
-                            <UserRound className="w-5 h-5 mr-2" />
-                            Mi Perfil
-                          </Link>
-                        )}
-                      </Menu.Item>
-                    </div>
-                    <div className="px-1 py-1">
-                      <Menu.Item>
-                        {({ active }) => (
-                          <button
-                            onClick={handleLogout}
-                            className={`${active ? 'bg-emerald-500 text-white' : 'text-gray-900'} group flex rounded-md items-center w-full px-2 py-2 text-sm`}
-                          >
-                            <LogOut className="w-5 h-5 mr-2" />
-                            Cerrar sesión
-                          </button>
-                        )}
-                      </Menu.Item>
-                    </div>
-                  </Menu.Items>
-                </Transition>
-              </Menu>
-            </div>
-          </div>
-        </header>
+          {(isRRHH || isJefe) && (
+            <>
+              <button
+                type="button"
+                onClick={() => setOpenEmp((v) => !v)}
+                className={clsx(
+                  "flex items-center justify-between w-full rounded-lg p-2 text-white/90 hover:bg-green-600",
+                  isInEmpleados && "bg-green-600 text-white font-semibold"
+                )}
+              >
+                <span className="flex items-center gap-3 overflow-hidden">
+                  <Users size={20} />
+                  {open && (
+                    <span className="font-medium truncate whitespace-nowrap">
+                      Empleados
+                    </span>
+                  )}
+                </span>
+                {open && (
+                  <ChevronDown
+                    size={18}
+                    className={clsx("transition-transform", openEmp && "rotate-180")}
+                  />
+                )}
+              </button>
 
-        {/* PAGE CONTENT */}
-        <main className="page">
-          <Outlet />
-        </main>
-      </div>
-    </div>
-  );
+              {open && openEmp && (
+                <div role="group" className="mt-1 mb-2 ml-4 mr-2">
+                  <SubItem to="/empleados" icon={List} label="Listado" open={open} />
+                  <SubItem
+                    to="/empleados/contratos"
+                    icon={FileText}
+                    label="Contratos"
+                    open={open}
+                  />
+                  <SubItem
+                    to="/empleados/solicitudes"
+                    icon={ClipboardList}
+                    label="Solicitudes"
+                    open={open}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {isRRHH && (
+            <>
+              <NavItem to="/dependencias" icon={Layers} label="Dependencias" open={open} />
+              <NavItem to="/puestos" icon={Briefcase} label="Puestos" open={open} />
+              <NavItem to="/roles" icon={Shield} label="Roles" open={open} />
+            </>
+          )}
+
+          {isUsuario && (
+            <div className="mt-3 border-t border-white/20 pt-3 overflow-hidden">
+              {open && (
+                <h2 className="text-xs font-semibold uppercase text-white/70 px-3 mb-2 whitespace-nowrap">
+                  Mi gestión
+                </h2>
+              )}
+              <SubItem
+                to="/empleados/contratos"
+                icon={FileText}
+                label="Mis contratos"
+                open={open}
+              />
+              <SubItem
+                to="/empleados/solicitudes"
+                icon={ClipboardList}
+                label="Mis solicitudes"
+                open={open}
+              />
+            </div>
+          )}
+        </nav>
+      </aside>
+
+      {/* FONDO OSCURO PARA MÓVIL */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* ===== CONTENIDO PRINCIPAL ===== */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* TOPBAR */}
+        <header className="h-16 border-b border-soft bg-card sticky top-0 z-20">
+          <div className="h-full container flex items-center justify-between">
+            <div className="flex items-center gap-3 md:gap-4">
+              {/* Botón menú móvil */}
+              <button
+                className="md:hidden p-2 rounded-lg hover:bg-green-100 text-green-700"
+                onClick={() => setOpen((o) => !o)}
+              >
+                <MenuIcon size={22} />
+              </button>
+              <div className="text-lg font-semibold">Dashboard</div>
+            </div>
+
+            {/* Perfil y búsqueda */}
+            <div className="flex items-center gap-3">
+              <input
+                className="bg-white border border-soft rounded-xl2 px-3 h-10 outline-none w-40 md:w-64 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
+                placeholder="Buscar..."
+              />
+              <Menu as="div" className="relative">
+                <Menu.Button className="w-9 h-9 bg-green-600 text-white rounded-full grid place-items-center hover:bg-green-700 focus:outline-none">
+                  <UserRound size={20} />
+                </Menu.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="px-1 py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            to="/perfil"
+                            className={`${
+                              active ? "bg-emerald-500 text-white" : "text-gray-900"
+                            } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                          >
+                            <UserRound className="w-5 h-5 mr-2" />
+                            Mi Perfil
+                          </Link>
+                        )}
+                      </Menu.Item>
+                    </div>
+                    <div className="px-1 py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={handleLogout}
+                            className={`${
+                              active ? "bg-emerald-500 text-white" : "text-gray-900"
+                            } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                          >
+                            <LogOut className="w-5 h-5 mr-2" />
+                            Cerrar sesión
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
+            </div>
+          </div>
+        </header>
+
+        {/* CONTENIDO DE LAS PÁGINAS */}
+        <main className="page">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
 }
-

@@ -35,7 +35,7 @@ export default function Dependencias() {
   const desactivar = async (id) => {
     if (!confirm("¿Desactivar esta dependencia?")) return;
     await http.put(`/dependencias/${id}/desactivar`);
-    setData(prev => prev.filter(d => d.id !== id)); // o marcar ESTADO = 0
+    setData(prev => prev.filter(d => d.id !== id));
   };
 
   return (
@@ -45,7 +45,7 @@ export default function Dependencias() {
         <h1 className="text-3xl font-bold">Gestión de dependencias</h1>
         <Link
           to="/dependencias/nueva"
-          className="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary/90"
+          className="btn-primary"
         >
           + Nueva dependencia
         </Link>
@@ -82,37 +82,53 @@ export default function Dependencias() {
 
           <tbody className="divide-y divide-soft">
             {loading ? (
-              <tr><td colSpan="4" className="py-8 text-center text-gray-400">Cargando…</td></tr>
+              <tr>
+                <td colSpan="4" className="py-8 text-center text-gray-400">
+                  Cargando…
+                </td>
+              </tr>
             ) : rows.length ? (
-              rows.map(d => (
+              rows.map((d) => (
                 <tr key={d.id} className="[&>td]:px-4 [&>td]:py-3">
                   <td className="font-medium">{d.nombre}</td>
                   <td className="max-w-[540px] truncate">{d.descripcion || "—"}</td>
+
+                <td className="td">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                    <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-emerald-400"></span>
+                    Activo
+                  </span>
+                </td>
+
+                  {/* Acciones */}
                   <td>
-                    <span className={`px-2 py-1 text-xs rounded-lg ${
-                      d.ESTADO ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"
-                    }`}>
-                      {d.ESTADO ? "Activo" : "Inactivo"}
-                    </span>
-                  </td>
-                  <td className="flex gap-2">
-                    {/* dejar listo por si luego agregas edición */}
-                    {/* <Link to={`/dependencias/editar/${d.id}`} className="px-3 py-1 rounded-lg bg-soft hover:bg-soft/80">Editar</Link> */}
-                    {d.ESTADO ? (
-                      <button
-                        onClick={() => desactivar(d.id)}
-                        className="px-3 py-1 rounded-lg bg-soft hover:bg-soft/80"
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/dependencias/editar/${d.id}`}
+                        className="btn-ghost"
                       >
-                        Desactivar
-                      </button>
-                    ) : (
-                      <span className="text-gray-500 text-sm">—</span>
-                    )}
+                        Editar
+                      </Link>
+                      {d.ESTADO ? (
+                        <button
+                          onClick={() => desactivar(d.id)}
+                          className="btn-ghost"
+                        >
+                          Desactivar
+                        </button>
+                      ) : (
+                        <span className="text-gray-500 text-sm">—</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="4" className="py-8 text-center text-gray-400">Sin resultados</td></tr>
+              <tr>
+                <td colSpan="4" className="py-8 text-center text-gray-400">
+                  Sin resultados
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

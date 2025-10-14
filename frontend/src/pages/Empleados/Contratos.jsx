@@ -1,28 +1,58 @@
 // frontend/src/pages/empleados/Contratos.jsx
-
 import { useEffect, useMemo, useState } from "react";
 import {
   listarContratos,
   crearContrato,
   actualizarContrato,
   cambiarEstadoContrato,
-  urlDescargaContrato,
 } from "@/api/contratos";
 import axios from "axios";
-import { Save, Search } from "lucide-react";
+import { Save, Search, Download } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-// ✅ Hook personalizado para "debouncing"
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
     return () => clearTimeout(handler);
   }, [value, delay]);
   return debouncedValue;
+}
+
+// 🔹 Función de descarga segura con token
+async function descargarContrato(id) {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/api/contratos/${id}/download`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      responseType: "blob", // importante para archivos
+    });
+
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+
+    // Extrae nombre del archivo del header o crea uno por defecto
+    const contentDisposition = response.headers["content-disposition"];
+    let fileName = `contrato_${id}.pdf`;
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match && match[1]) fileName = match[1];
+    }
+
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar contrato:", error);
+    alert("No se pudo descargar el contrato.");
+  }
 }
 
 export default function Contratos() {
@@ -33,11 +63,9 @@ export default function Contratos() {
   const [loading, setLoading] = useState(false);
   const [pageData, setPageData] = useState({ current_page: 1, last_page: 1 });
 
-  // 🔎 Búsqueda
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Formulario
   const [tipo_contrato, setTipoContrato] = useState("");
   const [fecha_inicio, setFechaInicio] = useState("");
   const [fecha_fin, setFechaFin] = useState("");
@@ -45,18 +73,39 @@ export default function Contratos() {
   const [archivo, setArchivo] = useState(null);
   const [editId, setEditId] = useState(null);
 
-  const token = useMemo(
-    () => localStorage.getItem("token") || localStorage.getItem("userToken"),
-    []
-  );
+  const token = useMemo(() => localStorage.getItem("token"), []);
+
+  // 🔹 Detección robusta del rol
+  let rolId = null;
+  try {
+    const keys = ["user", "usuario", "userData", "empleado"];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const obj = JSON.parse(raw);
+      rolId =
+        obj?.rol_id ||
+        obj?.rol?.id ||
+        obj?.usuario?.rol_id ||
+        obj?.usuario?.rol?.id ||
+        obj?.empleado?.rol_id ||
+        obj?.empleado?.rol?.id ||
+        null;
+      if (rolId) break;
+    }
+  } catch (err) {
+    console.error("Error detectando rol del usuario:", err);
+  }
+
+  const esRRHH = Number(rolId) === 1;
+  console.log("✅ Rol detectado:", rolId, "→ es RRHH?", esRRHH);
 
   // 📌 Cargar empleados
   useEffect(() => {
     (async () => {
       try {
         const { data } = await axios.get(`${API_URL}/api/empleados`, {
-          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-          params: { page: 1, per_page: 500 },
+          headers: { Authorization: `Bearer ${token}` },
         });
         const arr = Array.isArray(data?.data) ? data.data : data;
         setEmpleados(arr || []);
@@ -105,17 +154,9 @@ export default function Contratos() {
     setEditId(null);
   }
 
-  function mensajesError(err) {
-    const errors = err?.response?.data?.errors;
-    const msg = err?.response?.data?.message;
-    if (errors && typeof errors === "object") {
-      return Object.values(errors).flat().slice(0, 5).join("\n") || msg || "Error de validación.";
-    }
-    return msg || "Error al guardar el contrato.";
-  }
-
   async function onSubmit(e) {
     e.preventDefault();
+    if (!esRRHH) return alert("No tienes permisos para crear contratos.");
     if (!selectedEmpleado) return alert("Selecciona un empleado.");
     if (!tipo_contrato.trim()) return alert("El tipo de contrato es obligatorio.");
     if (!fecha_inicio) return alert("La fecha de inicio es obligatoria.");
@@ -131,31 +172,17 @@ export default function Contratos() {
 
     try {
       setLoading(true);
-      if (editId) {
-        await actualizarContrato(editId, fd);
-        alert("Contrato actualizado");
-      } else {
-        await crearContrato(fd);
-        alert("Contrato creado");
-      }
+      if (editId) await actualizarContrato(editId, fd);
+      else await crearContrato(fd);
+      alert("Contrato guardado correctamente");
       resetForm();
       cargar(1);
     } catch (err) {
-      console.error("Error al guardar contrato:", err.response?.data);
-      alert(mensajesError(err));
+      console.error("Error al guardar contrato:", err);
+      alert("Error al guardar contrato");
     } finally {
       setLoading(false);
     }
-  }
-
-  function startEdit(item) {
-    setEditId(item.id);
-    setTipoContrato(item.tipo || item.tipo_contrato || "");
-    setFechaInicio(item.inicio || item.fecha_inicio || "");
-    setFechaFin(item.fin || item.fecha_fin || "");
-    setPlantilla(item.plantilla || "");
-    setArchivo(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function toggleEstado(item) {
@@ -242,6 +269,7 @@ export default function Contratos() {
               onChange={(e) => setTipoContrato(e.target.value)}
               required
               placeholder="Ej: Indefinido, Temporal, etc."
+              disabled={!esRRHH}
             />
           </div>
           <div>
@@ -254,6 +282,7 @@ export default function Contratos() {
               value={fecha_inicio}
               onChange={(e) => setFechaInicio(e.target.value)}
               required
+              disabled={!esRRHH}
             />
           </div>
           <div>
@@ -263,6 +292,7 @@ export default function Contratos() {
               className="w-full border rounded px-3 py-2"
               value={fecha_fin}
               onChange={(e) => setFechaFin(e.target.value)}
+              disabled={!esRRHH}
             />
           </div>
           <div className="md:col-span-2">
@@ -273,6 +303,7 @@ export default function Contratos() {
               value={plantilla}
               onChange={(e) => setPlantilla(e.target.value)}
               placeholder="Texto base del contrato…"
+              disabled={!esRRHH}
             />
           </div>
           <div>
@@ -285,19 +316,19 @@ export default function Contratos() {
               className="w-full border rounded px-3 py-2"
               onChange={(e) => setArchivo(e.target.files?.[0] || null)}
               required={!editId}
+              disabled={!esRRHH}
             />
-            {editId && (
-              <p className="text-xs text-gray-500 mt-1">
-                Deja vacío para mantener el archivo actual
-              </p>
-            )}
           </div>
         </div>
         <div className="mt-4 flex gap-3">
           <button
             type="submit"
-            className="flex items-center gap-2 px-5 py-2 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-70"
-            disabled={loading || !selectedEmpleado}
+            className={`flex items-center gap-2 px-5 py-2 rounded-full font-medium transition-colors ${
+              esRRHH
+                ? "bg-green-600 text-white hover:bg-green-700"
+                : "bg-gray-300 text-gray-600 cursor-not-allowed"
+            }`}
+            disabled={!esRRHH || loading || !selectedEmpleado}
           >
             <Save size={18} />
             {editId ? "Guardar cambios" : "Guardar"}
@@ -306,7 +337,7 @@ export default function Contratos() {
             <button
               type="button"
               className="px-5 py-2 rounded-full border font-medium text-gray-700 hover:bg-gray-100"
-              onClick={resetForm}
+              onClick={() => resetForm()}
               disabled={loading}
             >
               Cancelar
@@ -332,13 +363,12 @@ export default function Contratos() {
                 <th className="px-4 py-2">Fin</th>
                 <th className="px-4 py-2">Estado</th>
                 <th className="px-4 py-2">Archivo</th>
-                <th className="px-4 py-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {lista.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
                     No hay contratos para mostrar
                   </td>
                 </tr>
@@ -348,7 +378,9 @@ export default function Contratos() {
                   <td className="px-4 py-2">{item.id}</td>
                   <td className="px-4 py-2">
                     {item.empleado
-                      ? `${item.empleado.id} - ${item.empleado.nombre || item.empleado.nombres} ${item.empleado.apellido || item.empleado.apellidos || ""}`
+                      ? `${item.empleado.id} - ${
+                          item.empleado.nombre || item.empleado.nombres
+                        } ${item.empleado.apellido || item.empleado.apellidos || ""}`
                       : "-"}
                   </td>
                   <td className="px-4 py-2">{item.tipo || item.tipo_contrato}</td>
@@ -357,7 +389,9 @@ export default function Contratos() {
                   <td className="px-4 py-2">
                     <span
                       className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
-                        item.ESTADO ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"
+                        item.ESTADO
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-200 text-gray-700"
                       }`}
                     >
                       ● {item.ESTADO ? "Activo" : "Inactivo"}
@@ -365,67 +399,22 @@ export default function Contratos() {
                   </td>
                   <td className="px-4 py-2">
                     {item.archivo_url ? (
-                      <a
-                        href={urlDescargaContrato(item.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline text-blue-600 hover:text-blue-800"
+                      <button
+                        onClick={() => descargarContrato(item.id)}
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
                       >
+                        <Download size={16} />
                         Descargar
-                      </a>
+                      </button>
                     ) : (
                       "-"
                     )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex gap-2">
-                      <button
-                        className="px-3 py-1 rounded border hover:bg-gray-50 text-sm"
-                        onClick={() => startEdit(item)}
-                        disabled={loading}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className={`px-3 py-1 rounded border text-sm ${
-                          item.ESTADO
-                            ? "hover:bg-red-50 text-red-600 border-red-200"
-                            : "hover:bg-green-50 text-green-600 border-green-200"
-                        }`}
-                        onClick={() => toggleEstado(item)}
-                        disabled={loading}
-                      >
-                        {item.ESTADO ? "Desactivar" : "Activar"}
-                      </button>
-                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-
-        {pageData.last_page > 1 && (
-          <div className="p-4 flex items-center gap-3">
-            <button
-              className="px-3 py-1 rounded border disabled:opacity-50"
-              disabled={pageData.current_page <= 1 || loading}
-              onClick={() => cargar(pageData.current_page - 1)}
-            >
-              « Anterior
-            </button>
-            <span className="text-sm">
-              Página {pageData.current_page} de {pageData.last_page}
-            </span>
-            <button
-              className="px-3 py-1 rounded border disabled:opacity-50"
-              disabled={pageData.current_page >= pageData.last_page || loading}
-              onClick={() => cargar(pageData.current_page + 1)}
-            >
-              Siguiente »
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

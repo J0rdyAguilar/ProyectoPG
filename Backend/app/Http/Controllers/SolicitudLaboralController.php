@@ -52,7 +52,7 @@ class SolicitudLaboralController extends Controller
                 'tipo_licencia'    => $request->tipo_licencia,
                 'documento_url'    => $request->documento_url,
                 'observaciones'    => $request->observaciones,
-                'ESTADO'           => 0, // 👈 Siempre inicia como pendiente
+                'ESTADO'           => 1, // 👈 Siempre inicia como pendiente
                 'USUARIO_INGRESO'  => $usuario->id,
                 'FECHA_INGRESO'    => now(),
             ]);

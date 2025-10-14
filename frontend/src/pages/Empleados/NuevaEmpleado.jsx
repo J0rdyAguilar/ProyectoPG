@@ -1,4 +1,3 @@
-// src/pages/NuevaEmpleado.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "@/api/axios";
@@ -19,6 +18,9 @@ export default function NuevaEmpleado() {
     fecha_nacimiento: "",
     numero_celular: "",
     direccion: "",
+    genero: "",
+    renglon_presupuestario: "",
+    salario: "",
     dependencia_id: "",
     puesto_id: "",
     id_jefe: "",
@@ -30,24 +32,21 @@ export default function NuevaEmpleado() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
-  // ---- helper: cargar puestos por dependencia (con fallback) ----
+  // ---- helper: cargar puestos por dependencia ----
   const loadPuestosByDep = async (depId) => {
     if (!depId) {
       setPuestos([]);
       return;
     }
     try {
-      // 1) Backend filtra por query param
       const r = await api.get("/puestos", { params: { dependencia_id: depId } });
       if (Array.isArray(r.data)) {
         setPuestos(r.data);
         return;
       }
-      // si no llega array, sigue a fallback
     } catch {
-      // ignoramos error para fallback
+      // fallback
     }
-    // 2) Fallback: traer todos y filtrar en cliente
     try {
       const rAll = await api.get("/puestos");
       const only = (rAll.data || []).filter(
@@ -61,7 +60,7 @@ export default function NuevaEmpleado() {
     }
   };
 
-  // Carga catálogos base (sin puestos; los cargamos al elegir dependencia)
+  // Carga catálogos base
   useEffect(() => {
     setBusy(true);
     Promise.all([
@@ -78,7 +77,7 @@ export default function NuevaEmpleado() {
       .finally(() => setBusy(false));
   }, []);
 
-  // Cuando cambia la dependencia, limpio puesto y cargo los puestos ligados
+  // Cuando cambia la dependencia, limpio puesto y recargo puestos ligados
   useEffect(() => {
     setF((s) => ({ ...s, puesto_id: "" }));
     if (f.dependencia_id) loadPuestosByDep(f.dependencia_id);
@@ -131,7 +130,7 @@ export default function NuevaEmpleado() {
 
       {/* Alerts */}
       {err && <div className="card p-3 border-red-200 bg-red-50 text-red-700">{err}</div>}
-      {ok &&  <div className="card p-3 border-emerald-200 bg-emerald-50 text-emerald-700">{ok}</div>}
+      {ok && <div className="card p-3 border-emerald-200 bg-emerald-50 text-emerald-700">{ok}</div>}
 
       {/* Form card */}
       <form onSubmit={submit} className="card p-6 space-y-6">
@@ -164,6 +163,43 @@ export default function NuevaEmpleado() {
               <Textarea disabled={loading} value={f.direccion} onChange={(e) => on("direccion", e.target.value)} rows={2} />
             </Field>
 
+            {/* Género */}
+            <Field label="Género">
+              <Select
+                disabled={loading}
+                value={f.genero}
+                onChange={(e) => on("genero", e.target.value)}
+              >
+                <option value="">Seleccione...</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+              </Select>
+            </Field>
+
+            {/* Renglón presupuestario */}
+            <Field label="Renglón presupuestario">
+              <Input
+                disabled={loading}
+                value={f.renglon_presupuestario}
+                onChange={(e) => on("renglon_presupuestario", e.target.value)}
+                placeholder="Ej. 011"
+              />
+            </Field>
+
+            {/* Salario */}
+            <Field label="Salario (Q)">
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                disabled={loading}
+                value={f.salario}
+                onChange={(e) => on("salario", e.target.value)}
+                placeholder="Ej. 3500.00"
+              />
+            </Field>
+
+            {/* Dependencia */}
             <Field label="Dependencia">
               <Select
                 disabled={busy || loading}
@@ -177,6 +213,7 @@ export default function NuevaEmpleado() {
               </Select>
             </Field>
 
+            {/* Puesto */}
             <Field label="Puesto">
               <Select
                 disabled={busy || loading || !f.dependencia_id}

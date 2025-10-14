@@ -13,62 +13,108 @@ use Illuminate\Support\Facades\Auth;
 class EmpleadoController extends Controller
 {
     /**
-     * Listado para la tabla (respuesta aplanada)
+     * Listado de empleados filtrado por rol
      */
-    public function index()
+    public function index(Request $request)
     {
-        $empleados = Empleado::where('ESTADO', 1)
-            ->with([
-                'dependencia:id,nombre',
-                'puesto:id,nombre',
-                'usuario.rol:id,nombre',
-                'jefe:id,nombre,apellido'
-            ])
-            ->get();
+        $usuario = Auth::user()->load('empleado');
+        $rolId = $usuario->rol_id;
 
-        // Aplanar a forma amigable para tabla
-        return $empleados->map(function ($e) {
-            return [
-                'id'                    => $e->id,
-                'nombre'                => $e->nombre,
-                'apellido'              => $e->apellido,
-                'numero_identificacion' => $e->numero_identificacion,
-                'numero_celular'        => $e->numero_celular,
-                'direccion'             => $e->direccion,
-                'dependencia'           => optional($e->dependencia)->nombre,
-                'puesto'                => optional($e->puesto)->nombre,
-                'rol'                   => optional(optional($e->usuario)->rol)->nombre,
-                'jefe'                  => $e->jefe ? $e->jefe->nombre . ' ' . $e->jefe->apellido : null,
-                'id_jefe'               => $e->id_jefe,
-            ];
-        });
+        $query = Empleado::where('ESTADO', 1)
+            ->with(['dependencia:id,nombre', 'puesto:id,nombre', 'usuario.rol:id,nombre', 'jefe:id,nombre,apellido']);
+
+        if ($rolId == 1) {
+            // RRHH ve todo
+        } elseif ($rolId == 2 && $usuario->empleado) {
+            $query->where('id_jefe', $usuario->empleado->id);
+        } else {
+            if ($usuario->empleado) {
+                $query->where('id', $usuario->empleado->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $empleados = $query->get();
+
+        return response()->json(
+            $empleados->map(function ($e) {
+                return [
+                    'id'                    => $e->id,
+                    'nombre'                => $e->nombre,
+                    'apellido'              => $e->apellido,
+                    'numero_identificacion' => $e->numero_identificacion,
+                    'numero_celular'        => $e->numero_celular,
+                    'direccion'             => $e->direccion,
+                    'genero'                => $e->genero,
+                    'renglon_presupuestario'=> $e->renglon_presupuestario,
+                    'salario'               => $e->salario,
+                    'dependencia'           => optional($e->dependencia)->nombre,
+                    'puesto'                => optional($e->puesto)->nombre,
+                    'rol'                   => optional(optional($e->usuario)->rol)->nombre,
+                    'jefe'                  => $e->jefe ? $e->jefe->nombre . ' ' . $e->jefe->apellido : null,
+                    'id_jefe'               => $e->id_jefe,
+                ];
+            })
+        );
     }
 
     /**
-     * Obtener lista de posibles jefes (para select)
+     * Listado simple para selects (respetando roles)
+     */
+    public function listadoParaSeleccion()
+    {
+        $usuario = Auth::user()->load('empleado');
+        $rolId = $usuario->rol_id;
+
+        $query = Empleado::where('ESTADO', 1);
+
+        if ($rolId == 1) {
+            // RRHH ve todos
+        } elseif ($rolId == 2 && $usuario->empleado) {
+            $subordinadosIds = Empleado::where('id_jefe', $usuario->empleado->id)->pluck('id');
+            $subordinadosIds->push($usuario->empleado->id);
+            $query->whereIn('id', $subordinadosIds);
+        } else {
+            if ($usuario->empleado) {
+                $query->where('id', $usuario->empleado->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $empleados = $query->orderBy('nombre')->get();
+
+        return response()->json(
+            $empleados->map(fn($e) => [
+                'id' => $e->id,
+                'nombre_completo' => $e->nombre . ' ' . $e->apellido
+            ])
+        );
+    }
+
+    /**
+     * Posibles jefes (excluyendo al mismo empleado)
      */
     public function posiblesJefes($empleadoId = null)
     {
         $query = Empleado::where('ESTADO', 1)
             ->select('id', 'nombre', 'apellido');
 
-        // Excluir al empleado actual para evitar autoreferencia
         if ($empleadoId) {
             $query->where('id', '!=', $empleadoId);
         }
 
-        $empleados = $query->get()->map(function ($e) {
-            return [
-                'id' => $e->id,
-                'nombre_completo' => $e->nombre . ' ' . $e->apellido
-            ];
-        });
+        $empleados = $query->get()->map(fn($e) => [
+            'id' => $e->id,
+            'nombre_completo' => $e->nombre . ' ' . $e->apellido
+        ]);
 
         return response()->json($empleados);
     }
 
     /**
-     * Mostrar un empleado (con relaciones completas)
+     * Mostrar empleado con todas sus relaciones
      */
     public function show($id)
     {
@@ -82,33 +128,34 @@ class EmpleadoController extends Controller
     }
 
     /**
-     * Crear usuario + empleado (transacción)
+     * Crear empleado + usuario
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // Datos del empleado
             'nombre'                => 'required|string|max:100',
             'apellido'              => 'required|string|max:100',
             'numero_identificacion' => 'required|string|max:50|unique:empleados',
             'fecha_nacimiento'      => 'required|date',
             'numero_celular'        => 'required',
             'direccion'             => 'required|string',
+            'genero'                => 'required|in:Masculino,Femenino',
+            'renglon_presupuestario'=> 'required|string|max:20',
+            'salario'               => 'required|numeric|min:0',
             'dependencia_id'        => 'required|exists:dependencias,id',
             'puesto_id'             => 'required|exists:puestos,id',
             'id_jefe'               => 'nullable|exists:empleados,id',
             'USUARIO_INGRESO'       => 'nullable|integer',
 
-            // Datos del usuario
+            // Usuario
             'usuario.nombre'        => 'required|string|max:100',
-            'usuario.usuario'       => ['required','string','max:50', Rule::unique('usuarios', 'usuario')],
+            'usuario.usuario'       => ['required', 'string', 'max:50', Rule::unique('usuarios', 'usuario')],
             'usuario.contrasena'    => 'required|string|min:6',
             'usuario.rol_id'        => 'required|exists:roles,id',
         ]);
 
         try {
             $result = DB::transaction(function () use ($validated) {
-                // 1) Usuario
                 $nuevoUsuario = Usuario::create([
                     'nombre'          => $validated['usuario']['nombre'],
                     'usuario'         => $validated['usuario']['usuario'],
@@ -119,7 +166,6 @@ class EmpleadoController extends Controller
                     'FECHA_INGRESO'   => now(),
                 ]);
 
-                // 2) Empleado
                 $empleado = Empleado::create([
                     'nombre'                => $validated['nombre'],
                     'apellido'              => $validated['apellido'],
@@ -127,6 +173,9 @@ class EmpleadoController extends Controller
                     'fecha_nacimiento'      => $validated['fecha_nacimiento'],
                     'numero_celular'        => $validated['numero_celular'],
                     'direccion'             => $validated['direccion'],
+                    'genero'                => $validated['genero'],
+                    'renglon_presupuestario'=> $validated['renglon_presupuestario'],
+                    'salario'               => $validated['salario'],
                     'usuario_id'            => $nuevoUsuario->id,
                     'dependencia_id'        => $validated['dependencia_id'],
                     'puesto_id'             => $validated['puesto_id'],
@@ -140,16 +189,15 @@ class EmpleadoController extends Controller
             });
 
             [$nuevoUsuario, $empleado] = $result;
+            return response()->json(['usuario' => $nuevoUsuario, 'empleado' => $empleado], 201);
 
-            return response()->json(['usuario'  => $nuevoUsuario, 'empleado' => $empleado], 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Actualizar empleado (y opcionalmente el rol del usuario)
-     * Devuelve el mismo formato aplanado que index()
+     * Actualizar empleado (y su rol si aplica)
      */
     public function update(Request $request, $id)
     {
@@ -158,20 +206,24 @@ class EmpleadoController extends Controller
         $validated = $request->validate([
             'nombre'                => 'required|string|max:100',
             'apellido'              => 'required|string|max:100',
-            'numero_identificacion' => ['required','string','max:50', Rule::unique('empleados','numero_identificacion')->ignore($empleado->id)],
+            'numero_identificacion' => ['required', 'string', 'max:50', Rule::unique('empleados', 'numero_identificacion')->ignore($empleado->id)],
             'fecha_nacimiento'      => 'required|date',
             'numero_celular'        => 'required',
             'direccion'             => 'required|string',
+            'genero'                => 'required|in:Masculino,Femenino',
+            'renglon_presupuestario'=> 'required|string|max:20',
+            'salario'               => 'required|numeric|min:0',
             'dependencia_id'        => 'required|exists:dependencias,id',
             'puesto_id'             => 'required|exists:puestos,id',
-            'id_jefe'               => ['nullable', 'exists:empleados,id', function ($attribute, $value, $fail) use ($id) { if ($value == $id) { $fail('Un empleado no puede ser jefe de sí mismo.'); }}],
+            'id_jefe'               => ['nullable', 'exists:empleados,id', function ($attribute, $value, $fail) use ($id) {
+                if ($value == $id) $fail('Un empleado no puede ser su propio jefe.');
+            }],
             'rol_id'                => 'nullable|exists:roles,id',
             'USUARIO_MODIFICA'      => 'nullable|integer',
         ]);
 
         try {
             DB::transaction(function () use ($empleado, $validated) {
-                // Actualizar empleado
                 $empleado->update([
                     'nombre'                => $validated['nombre'],
                     'apellido'              => $validated['apellido'],
@@ -179,6 +231,9 @@ class EmpleadoController extends Controller
                     'fecha_nacimiento'      => $validated['fecha_nacimiento'],
                     'numero_celular'        => $validated['numero_celular'],
                     'direccion'             => $validated['direccion'],
+                    'genero'                => $validated['genero'],
+                    'renglon_presupuestario'=> $validated['renglon_presupuestario'],
+                    'salario'               => $validated['salario'],
                     'dependencia_id'        => $validated['dependencia_id'],
                     'puesto_id'             => $validated['puesto_id'],
                     'id_jefe'               => $validated['id_jefe'] ?? null,
@@ -186,79 +241,50 @@ class EmpleadoController extends Controller
                     'FECHA_MODIFICA'        => now(),
                 ]);
 
-                // Rol del usuario (si viene)
                 if (isset($validated['rol_id']) && $empleado->usuario) {
                     $empleado->usuario->rol_id = $validated['rol_id'];
                     $empleado->usuario->save();
                 }
             });
 
-            // Refrescar y aplanar
-            $e = Empleado::with(['dependencia:id,nombre', 'puesto:id,nombre', 'usuario.rol:id,nombre', 'jefe:id,nombre,apellido'])->find($empleado->id);
+            $e = Empleado::with(['dependencia:id,nombre', 'puesto:id,nombre', 'usuario.rol:id,nombre', 'jefe:id,nombre,apellido'])
+                ->find($empleado->id);
 
-            $flat = [
-                'id'                    => $e->id,
-                'nombre'                => $e->nombre,
-                'apellido'              => $e->apellido,
-                'numero_identificacion' => $e->numero_identificacion,
-                'numero_celular'        => $e->numero_celular,
-                'direccion'             => $e->direccion,
-                'dependencia'           => optional($e->dependencia)->nombre,
-                'puesto'                => optional($e->puesto)->nombre,
-                'rol'                   => optional(optional($e->usuario)->rol)->nombre,
-                'jefe'                  => $e->jefe ? $e->jefe->nombre . ' ' . $e->jefe->apellido : null,
-                'id_jefe'               => $e->id_jefe,
-            ];
+            return response()->json([
+                'id'          => $e->id,
+                'nombre'      => $e->nombre,
+                'apellido'    => $e->apellido,
+                'genero'      => $e->genero,
+                'renglon_presupuestario'=> $e->renglon_presupuestario,
+                'salario'     => $e->salario,
+                'dependencia' => optional($e->dependencia)->nombre,
+                'puesto'      => optional($e->puesto)->nombre,
+                'rol'         => optional(optional($e->usuario)->rol)->nombre,
+                'jefe'        => $e->jefe ? $e->jefe->nombre . ' ' . $e->jefe->apellido : null,
+            ], 200);
 
-            return response()->json($flat, 200);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Obtener subordinados de un empleado
-     */
-    public function subordinados($id)
-    {
-        $empleado = Empleado::findOrFail($id);
-        
-        $subordinados = $empleado->subordinados()
-            ->where('ESTADO', 1)
-            ->with(['puesto:id,nombre', 'dependencia:id,nombre'])
-            ->get()
-            ->map(function ($s) {
-                return [
-                    'id' => $s->id,
-                    'nombre_completo' => $s->nombre . ' ' . $s->apellido,
-                    'puesto' => optional($s->puesto)->nombre,
-                    'dependencia' => optional($s->dependencia)->nombre,
-                ];
-            });
-
-        return response()->json($subordinados);
-    }
-
-    /**
-     * Desactivar (soft) empleado
+     * Desactivar empleado
      */
     public function desactivar($id)
     {
         $empleado = Empleado::findOrFail($id);
-        
-        // Verificar si tiene subordinados activos
-        $tieneSubordinados = $empleado->subordinados()->where('ESTADO', 1)->exists();
-        
-        if ($tieneSubordinados) {
-            return response()->json(['error' => 'No se puede desactivar este empleado porque tiene subordinados activos.'], 400);
+
+        if ($empleado->subordinados()->where('ESTADO', 1)->exists()) {
+            return response()->json(['error' => 'No se puede desactivar: tiene subordinados activos.'], 400);
         }
 
-        $empleado->ESTADO = 0;
-        $empleado->FECHA_MODIFICA = now();
-        $empleado->USUARIO_MODIFICA = Auth::id(); // Usar Auth::id() aquí
-        $empleado->save();
+        $empleado->update([
+            'ESTADO' => 0,
+            'FECHA_MODIFICA' => now(),
+            'USUARIO_MODIFICA' => Auth::id(),
+        ]);
 
         return response()->json(['mensaje' => 'Empleado desactivado'], 200);
     }
 }
-

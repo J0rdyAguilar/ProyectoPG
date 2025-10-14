@@ -43,12 +43,6 @@ export default function Roles() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Gestión de roles</h1>
-        <Link
-          to="/roles/nuevo"
-          className="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary/90"
-        >
-          + Nuevo rol
-        </Link>
       </div>
 
       {/* Search */}
@@ -76,7 +70,6 @@ export default function Roles() {
               <th>Nombre</th>
               <th>Descripción</th>
               <th>Estado</th>
-              <th>Acciones</th>
             </tr>
           </thead>
 
@@ -90,23 +83,14 @@ export default function Roles() {
                 <td className="max-w-[520px] truncate">{r.descripcion || "—"}</td>
                 <td>
                   <span className={`px-2 py-1 text-xs rounded-lg ${
-                    r.ESTADO ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"
+                    r.ESTADO ? "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800" : "bg-rose-500/15 text-rose-300"
                   }`}>
                     {r.ESTADO ? "Activo" : "Inactivo"}
                   </span>
                 </td>
                 <td className="flex gap-2">
                   {/* <Link to={`/roles/editar/${r.id}`} className="px-3 py-1 rounded-lg bg-soft hover:bg-soft/80">Editar</Link> */}
-                  {r.ESTADO ? (
-                    <button
-                      onClick={() => desactivar(r.id)}
-                      className="px-3 py-1 rounded-lg bg-soft hover:bg-soft/80"
-                    >
-                      Desactivar
-                    </button>
-                  ) : (
-                    <span className="text-gray-500 text-sm">—</span>
-                  )}
+
                 </td>
               </tr>
             ))
