@@ -17,12 +17,12 @@ import Roles from "./pages/Roles";
 import Dashboard from "./pages/Dashboard";
 
 // Páginas de empleados
-import Empleados from "./pages/empleados/Empleados";
-import NuevaEmpleado from "./pages/empleados/NuevaEmpleado";
-import EditarEmpleado from "./pages/empleados/EditarEmpleado";
-import SolicitudesLaborales from "./pages/empleados/SolicitudesLaborales";
-import Contratos from "./pages/empleados/Contratos";
-import PermisosLaborales from "./pages/empleados/PermisosLaborales";
+import Empleados from "./pages/Empleados/Empleados";
+import NuevaEmpleado from "./pages/Empleados/NuevaEmpleado";
+import EditarEmpleado from "./pages/Empleados/EditarEmpleado";
+import SolicitudesLaborales from "./pages/Empleados/SolicitudesLaborales";
+import Contratos from "./pages/Empleados/Contratos";
+import PermisosLaborales from "./pages/Empleados/PermisosLaborales";
 
 // -------------------------------
 // Ruta protegida con validación de rol
