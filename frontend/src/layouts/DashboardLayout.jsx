@@ -71,7 +71,7 @@ const SubItem = ({ to, icon: Icon, label, open }) => (
 /* ================== LAYOUT PRINCIPAL ================== */
 
 export default function DashboardLayout({ usuario }) {
-  // 📱 Sidebar cerrado por defecto en móvil, abierto en pantallas grandes
+  // 📱 Sidebar cerrado por defecto en móvil, abierto en pantallas grandesssss
   const [open, setOpen] = useState(() => window.innerWidth >= 768);
 
   // Detectar cambios de tamaño de pantalla

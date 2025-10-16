@@ -27,7 +27,7 @@ Route::get('/test', function () {
 Route::post('/login', [AuthController::class, 'login']);
 
 // -------------------------------
-// Rutas protegidas con Sanctum
+// Rutas protegidas con Sanctummmm
 // -------------------------------
 Route::middleware('auth:sanctum')->group(function () {
 
