@@ -1,10 +1,8 @@
 // src/pages/Login.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import fondoLogin from "@/assets/cuilco.jpg"; // 🖼️ Asegúrate de que la imagen exista
-
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+import { http } from "@/http"; // ✅ Usa la instancia global configurada en http.js
+import fondoLogin from "@/assets/cuilco.jpg"; // 🖼️ Verifica que la imagen exista
 
 function Login({ setToken, autenticarUsuario }) {
   const nav = useNavigate();
@@ -14,7 +12,7 @@ function Login({ setToken, autenticarUsuario }) {
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
 
-  // Si ya hay token, manda al dashboard
+  // Si ya hay token, redirigir al dashboard
   useEffect(() => {
     const t = localStorage.getItem("token");
     if (t) nav("/dashboard", { replace: true });
@@ -23,41 +21,37 @@ function Login({ setToken, autenticarUsuario }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMensaje("");
+
     try {
       setLoading(true);
 
-      const { data } = await axios.post(`${API_URL}/api/login`, {
-        usuario,
-        contrasena,
-      });
+      // ✅ Login usando instancia http con /api incluido en baseURL
+      const { data } = await http.post("/login", { usuario, contrasena });
 
       const token = data?.token;
-      if (!token) throw new Error("El backend no devolvió 'token'.");
-
       const usuarioData = data?.usuario;
+
+      if (!token) throw new Error("El backend no devolvió 'token'.");
       if (!usuarioData) throw new Error("El backend no devolvió datos del usuario.");
 
-      // Guarda datos en localStorage
+      // Guardar datos en localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("usuario_id", usuarioData.id);
       localStorage.setItem("rol_id", usuarioData.rol_id);
       localStorage.setItem("rol_nombre", usuarioData.rol_nombre);
 
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-      // obtener perfil y guardar
-      const perfil = await axios.get(`${API_URL}/api/perfil`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // ✅ Obtener perfil con token automáticamente agregado (por interceptor)
+      const perfil = await http.get("/perfil");
       localStorage.setItem("usuario", JSON.stringify(perfil.data));
 
-      // callbacks opcionales
+      // Callbacks opcionales
       setToken?.(token);
       await autenticarUsuario?.(token);
 
-      // redirige al dashboard
+      // Redirigir al dashboard
       nav("/dashboard", { replace: true });
     } catch (err) {
+      console.error("Error al iniciar sesión:", err);
       const apiMsg =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
@@ -72,16 +66,13 @@ function Login({ setToken, autenticarUsuario }) {
   return (
     <div
       className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
-      style={{
-        backgroundImage: `url(${fondoLogin})`, // Fondo principal
-      }}
+      style={{ backgroundImage: `url(${fondoLogin})` }}
     >
-      {/* Capa oscura para contraste */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
+      {/* Capa oscura */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
 
-      {/* Contenedor del login */}
+      {/* Contenedor */}
       <div className="relative z-10 card w-full max-w-md p-8 bg-white/95 border border-gray-200 rounded-2xl shadow-2xl">
-        {/* Encabezado */}
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-green-700 mb-1">
             Municipalidad de Cuilco
@@ -100,7 +91,6 @@ function Login({ setToken, autenticarUsuario }) {
         )}
 
         <form onSubmit={handleSubmit} className="grid gap-3">
-          {/* Usuario */}
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium text-gray-800">Usuario</span>
             <input
@@ -114,7 +104,6 @@ function Login({ setToken, autenticarUsuario }) {
             />
           </label>
 
-          {/* Contraseña */}
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium text-gray-800">Contraseña</span>
             <div className="relative">
@@ -136,7 +125,6 @@ function Login({ setToken, autenticarUsuario }) {
             </div>
           </label>
 
-          {/* Botón */}
           <button
             type="submit"
             disabled={loading}
@@ -146,9 +134,7 @@ function Login({ setToken, autenticarUsuario }) {
           </button>
         </form>
 
-        <div className="mt-4 text-xs text-gray-500 text-center">
-          Versión 0.1
-        </div>
+        <div className="mt-4 text-xs text-gray-500 text-center">Versión 0.1</div>
       </div>
     </div>
   );
