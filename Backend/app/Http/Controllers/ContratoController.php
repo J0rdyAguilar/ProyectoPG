@@ -369,4 +369,3 @@ class ContratoController extends Controller
         }
     }
 }
-

@@ -74,4 +74,11 @@ class Empleado extends Model
     {
         return !is_null($this->id_jefe);
     }
+
+    // Relación con sanciones
+    public function sanciones()
+    {
+        return $this->hasMany(\App\Models\Sancion::class, 'empleado_id');
+    }
+
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ContratoController;
 use App\Http\Controllers\PermisoLaboralController;
 use App\Http\Controllers\SolicitudLaboralController;
+use App\Http\Controllers\SancionController;
 
 
 // -------------------------------
@@ -80,7 +81,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/contratos', [ContratoController::class, 'store']);
     Route::get('/contratos/{contrato}', [ContratoController::class, 'show']);
     Route::put('/contratos/{contrato}', [ContratoController::class, 'update']);
-    Route::post('/contratos/{contrato}', [ContratoController::class, 'update']); 
+    Route::post('/contratos/{contrato}', [ContratoController::class, 'update']);
+    
+    // -------------------------------
+    // Sanciones
+    // -------------------------------
+    Route::get('/sanciones', [SancionController::class, 'index']);
+    Route::post('/sanciones', [SancionController::class, 'store']);
+    Route::get('/sanciones/{id}', [SancionController::class, 'show']);
+    Route::put('/sanciones/{id}', [SancionController::class, 'update']);
+    Route::put('/sanciones/{id}/desactivar', [SancionController::class, 'desactivar']);
+
 
     // Activar/Desactivar (manteniendo tu estilo "desactivar")
     Route::put('/contratos/{contrato}/estado', [ContratoController::class, 'cambiarEstado']); // body: { "ESTADO": true|false }

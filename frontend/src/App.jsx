@@ -24,6 +24,10 @@ import SolicitudesLaborales from "./pages/empleados/SolicitudesLaborales";
 import Contratos from "./pages/empleados/Contratos";
 import PermisosLaborales from "./pages/empleados/PermisosLaborales";
 
+// Sanciones
+import Sanciones from "./pages/Empleados/Sanciones.jsx";
+import NuevaSancion from "./pages/Empleados/NuevaSancion.jsx";
+
 // -------------------------------
 // Ruta protegida con validación de rol
 // -------------------------------
@@ -100,10 +104,10 @@ function App() {
           </RutaProtegida>
         }
       >
-        {/* Dashboard: todos los roles */}
+        {/* Dashboard */}
         <Route path="dashboard" element={<Dashboard />} />
 
-        {/* Perfil: todos los roles */}
+        {/* Perfil */}
         <Route path="perfil" element={<Perfil usuario={usuario} />} />
 
         {/* Empleados */}
@@ -132,24 +136,49 @@ function App() {
           }
         />
 
-        {/* Contratos: CORREGIDO para permitir todos los roles */}
+        {/* Contratos */}
         <Route
           path="empleados/contratos"
           element={
-            // 👇 ¡AQUÍ ESTÁ LA MAGIA! Permitimos a todos los roles con permisos.
             <RutaProtegida token={token} usuario={usuario} rolesPermitidos={[1, 2, 3]}>
               <Contratos />
             </RutaProtegida>
           }
         />
 
-        {/* Permisos laborales: todos (backend filtra) */}
+        {/* Permisos laborales */}
         <Route path="empleados/permisos" element={<PermisosLaborales />} />
 
-        {/* Solicitudes laborales: todos (backend filtra) */}
+        {/* Solicitudes laborales */}
         <Route path="empleados/solicitudes" element={<SolicitudesLaborales />} />
 
-        {/* Catálogos: solo RRHH */}
+        {/* 🔥🔥🔥 SANCIONES – NUEVO */}
+        <Route
+          path="empleados/sanciones"
+          element={
+            <RutaProtegida token={token} usuario={usuario} rolesPermitidos={[1, 2]}>
+              <Sanciones />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="empleados/sanciones/nueva"
+          element={
+            <RutaProtegida token={token} usuario={usuario} rolesPermitidos={[1]}>
+              <NuevaSancion />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="empleados/sanciones/editar/:id"
+          element={
+            <RutaProtegida token={token} usuario={usuario} rolesPermitidos={[1]}>
+              <NuevaSancion />
+            </RutaProtegida>
+          }
+        />
+
+        {/* Catálogos */}
         <Route
           path="dependencias"
           element={
@@ -166,7 +195,6 @@ function App() {
             </RutaProtegida>
           }
         />
-
         <Route
           path="dependencias/editar/:id"
           element={
@@ -184,7 +212,7 @@ function App() {
             </RutaProtegida>
           }
         />
-        
+
         <Route
           path="puestos"
           element={

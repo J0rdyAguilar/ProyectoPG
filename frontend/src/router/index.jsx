@@ -1,68 +1,91 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
-import RequireAuth from "./RequireAuth.jsx";
-import DashboardLayout from "../layouts/DashboardLayout.jsx";
+  import { createBrowserRouter, Navigate } from "react-router-dom";
+  import RequireAuth from "./RequireAuth.jsx";
+  import DashboardLayout from "../layouts/DashboardLayout.jsx";
 
-// Páginas
-import Login from "../pages/Login.jsx";
-import Dashboard from "../pages/Dashboard.jsx";
-import Dependencias from "../pages/Dependencias.jsx";
-import NuevaDependencia from "../pages/NuevaDependencia.jsx";
-import Roles from "../pages/Roles.jsx";
-import NuevoRol from "../pages/NuevoRol.jsx";
-import Puestos from "../pages/Puestos.jsx";
-import NuevoPuesto from "../pages/NuevoPuesto.jsx";
-import Perfil from "../pages/Perfil.jsx";
+  // Páginas generales
+  import Login from "../pages/Login.jsx";
+  import Dashboard from "../pages/Dashboard.jsx";
+  import Dependencias from "../pages/Dependencias.jsx";
+  import NuevaDependencia from "../pages/NuevaDependencia.jsx";
+  import Roles from "../pages/Roles.jsx";
+  import NuevoRol from "../pages/NuevoRol.jsx";
+  import Puestos from "../pages/Puestos.jsx";
+  import NuevoPuesto from "../pages/NuevoPuesto.jsx";
+  import Perfil from "../pages/Perfil.jsx";
 
-// ---- Importaciones para la sección de Empleados ----
-import EmpleadosLayout from "../pages/empleados/EmpleadosLayout.jsx";
-import EmpleadosIndex from "../pages/empleados/Empleados.jsx";
-import Contratos from "../pages/empleados/Contratos.jsx";
-import NuevaEmpleado from "../pages/empleados/NuevaEmpleado.jsx";
-import EditarEmpleado from "../pages/empleados/EditarEmpleado.jsx";
-import PermisosLaborales from "../pages/empleados/PermisosLaborales.jsx"; // Ruta para permisos laborales
-// ---------------------------------------------------
+  // ---- Sección EMPLEADOS ----
+  import EmpleadosLayout from "../pages/empleados/EmpleadosLayout.jsx";
+  import EmpleadosIndex from "../pages/empleados/Empleados.jsx";
+  import Contratos from "../pages/empleados/Contratos.jsx";
+  import NuevaEmpleado from "../pages/empleados/NuevaEmpleado.jsx";
+  import EditarEmpleado from "../pages/empleados/EditarEmpleado.jsx";
+  import PermisosLaborales from "../pages/empleados/PermisosLaborales.jsx";
 
-export const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/login" replace /> },
-  { path: "/login", element: <Login /> },
-  {
-    element: <RequireAuth />, // Protege todas las rutas internas
-    children: [
-      {
-        path: "/", // La ruta raíz de las páginas protegidas
-        element: <DashboardLayout />, // Usa el layout principal para todas
-        children: [
-          // Redirección por defecto al entrar a la zona protegida
-          { index: true, element: <Navigate to="/dashboard" replace /> },
-          { path: "dashboard", element: <Dashboard /> },
+  // ---- Sanciones ----
+  import Sanciones from "../pages/Empleados/Sanciones.jsx";
+  import NuevaSancion from "../pages/Empleados/NuevaSancion.jsx";
 
-          // --- SECCIÓN DE EMPLEADOS (CON PERMISOS AÑADIDOS) ---
-          {
-            path: "empleados",
-            element: <EmpleadosLayout />, // Usa el layout de empleados
-            children: [
-              { index: true, element: <EmpleadosIndex /> }, // Ruta: /empleados
-              { path: "contratos", element: <Contratos /> }, // Ruta: /empleados/contratos
-              { path: "permisos", element: <PermisosLaborales /> }, // Ruta: /empleados/permisos
-              { path: "nuevo", element: <NuevaEmpleado /> },     // Ruta: /empleados/nuevo
-              { path: "editar/:id", element: <EditarEmpleado /> }, // Ruta: /empleados/editar/:id
-            ],
-          },
-          // ---------------------------------------------------
+  export const router = createBrowserRouter([
+    { path: "/", element: <Navigate to="/login" replace /> },
 
-          { path: "dependencias", element: <Dependencias /> },
-          { path: "dependencias/nueva", element: <NuevaDependencia /> },
+    { path: "/login", element: <Login /> },
 
-          { path: "roles", element: <Roles /> },
-          { path: "roles/nuevo", element: <NuevoRol /> },
+    {
+      element: <RequireAuth />, // Protege todas las rutas internas
+      children: [
+        {
+          path: "/", 
+          element: <DashboardLayout />, // Layout principal
+          children: [
+            { index: true, element: <Navigate to="/dashboard" replace /> },
 
-          { path: "puestos", element: <Puestos /> },
-          { path: "puestos/nuevo", element: <NuevoPuesto /> },
+            // Dashboard
+            { path: "dashboard", element: <Dashboard /> },
 
-          { path: "perfil", element: <Perfil /> },
-        ],
-      },
-    ],
-  },
-  { path: "*", element: <Navigate to="/login" replace /> },
-]);
+            // -------------------------------
+            // SECCIÓN EMPLEADOS
+            // -------------------------------
+            {
+              path: "empleados",
+              element: <EmpleadosLayout />,
+              children: [
+                { index: true, element: <EmpleadosIndex /> },
+
+                // Contratos
+                { path: "contratos", element: <Contratos /> },
+
+                // Solicitudes (tu menú usa esta)
+                { path: "solicitudes", element: <PermisosLaborales /> },
+
+                // 🔥 Sanciones (necesaria)
+                { path: "sanciones", element: <Sanciones /> },
+                { path: "sanciones/nueva", element: <NuevaSancion /> },
+                { path: "sanciones/editar/:id", element: <NuevaSancion /> },
+
+                // Empleado CRUD
+                { path: "nuevo", element: <NuevaEmpleado /> },
+                { path: "editar/:id", element: <EditarEmpleado /> },
+              ],
+            },
+
+            // Dependencias
+            { path: "dependencias", element: <Dependencias /> },
+            { path: "dependencias/nueva", element: <NuevaDependencia /> },
+
+            // Roles
+            { path: "roles", element: <Roles /> },
+            { path: "roles/nuevo", element: <NuevoRol /> },
+
+            // Puestos
+            { path: "puestos", element: <Puestos /> },
+            { path: "puestos/nuevo", element: <NuevoPuesto /> },
+
+            // Perfil
+            { path: "perfil", element: <Perfil /> },
+          ],
+        },
+      ],
+    },
+
+    { path: "*", element: <Navigate to="/login" replace /> },
+  ]);

@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronDown,
   List,
+  AlertTriangle,
 } from "lucide-react";
 import { logout } from "@/api/auth";
 import logoMuni from "../assets/logo-muni.png";
@@ -71,10 +72,8 @@ const SubItem = ({ to, icon: Icon, label, open }) => (
 /* ================== LAYOUT PRINCIPAL ================== */
 
 export default function DashboardLayout({ usuario }) {
-  // 📱 Sidebar cerrado por defecto en móvil, abierto en pantallas grandes
   const [open, setOpen] = useState(() => window.innerWidth >= 768);
 
-  // Detectar cambios de tamaño de pantalla
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) setOpen(true);
@@ -109,7 +108,6 @@ export default function DashboardLayout({ usuario }) {
 
   return (
     <div className="min-h-screen flex bg-bg text-ink relative">
-      {/* ===== SIDEBAR ===== */}
       <aside
         className={clsx(
           "transition-all duration-300 p-4 fixed md:sticky top-0 h-screen flex flex-col text-white bg-green-700 z-40",
@@ -142,7 +140,6 @@ export default function DashboardLayout({ usuario }) {
             )}
           </div>
 
-          {/* Botón de cerrar en móvil */}
           <button
             className="p-2 rounded-lg hover:bg-green-600 text-white/80 flex-shrink-0 md:hidden"
             onClick={() => setOpen(false)}
@@ -151,7 +148,6 @@ export default function DashboardLayout({ usuario }) {
           </button>
         </div>
 
-        {/* NAVIGATION */}
         <nav className="flex flex-col gap-1 overflow-hidden">
           <NavItem to="/dashboard" icon={BarChart3} label="Dashboard" open={open} />
 
@@ -196,6 +192,14 @@ export default function DashboardLayout({ usuario }) {
                     label="Solicitudes"
                     open={open}
                   />
+
+                  {/* 🔥 NUEVO: SANCIONES */}
+                  <SubItem
+                    to="/empleados/sanciones"
+                    icon={AlertTriangle}
+                    label="Sanciones"
+                    open={open}
+                  />
                 </div>
               )}
             </>
@@ -210,18 +214,20 @@ export default function DashboardLayout({ usuario }) {
           )}
 
           {isUsuario && (
-            <div className="mt-3 border-t border-white/20 pt-3 overflow-hidden">
+            <div className="mt-3 border-t border-white/20 pt-3">
               {open && (
-                <h2 className="text-xs font-semibold uppercase text-white/70 px-3 mb-2 whitespace-nowrap">
+                <h2 className="text-xs font-semibold uppercase text-white/70 px-3 mb-2">
                   Mi gestión
                 </h2>
               )}
+
               <SubItem
                 to="/empleados/contratos"
                 icon={FileText}
                 label="Mis contratos"
                 open={open}
               />
+
               <SubItem
                 to="/empleados/solicitudes"
                 icon={ClipboardList}
@@ -233,7 +239,6 @@ export default function DashboardLayout({ usuario }) {
         </nav>
       </aside>
 
-      {/* FONDO OSCURO PARA MÓVIL */}
       {open && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden"
@@ -241,13 +246,10 @@ export default function DashboardLayout({ usuario }) {
         />
       )}
 
-      {/* ===== CONTENIDO PRINCIPAL ===== */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* TOPBAR */}
         <header className="h-16 border-b border-soft bg-card sticky top-0 z-20">
           <div className="h-full container flex items-center justify-between">
             <div className="flex items-center gap-3 md:gap-4">
-              {/* Botón menú móvil */}
               <button
                 className="md:hidden p-2 rounded-lg hover:bg-green-100 text-green-700"
                 onClick={() => setOpen((o) => !o)}
@@ -257,26 +259,26 @@ export default function DashboardLayout({ usuario }) {
               <div className="text-lg font-semibold">Dashboard</div>
             </div>
 
-            {/* Perfil y búsqueda */}
             <div className="flex items-center gap-3">
               <input
-                className="bg-white border border-soft rounded-xl2 px-3 h-10 outline-none w-40 md:w-64 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
+                className="bg-white border border-soft rounded-xl2 px-3 h-10 outline-none w-40 md:w-64 text-sm text-ink placeholder:text-ink-muted"
                 placeholder="Buscar..."
               />
               <Menu as="div" className="relative">
-                <Menu.Button className="w-9 h-9 bg-green-600 text-white rounded-full grid place-items-center hover:bg-green-700 focus:outline-none">
+                <Menu.Button className="w-9 h-9 bg-green-600 text-white rounded-full grid place-items-center hover:bg-green-700">
                   <UserRound size={20} />
                 </Menu.Button>
+
                 <Transition
                   as={Fragment}
-                  enter="transition ease-out duration-100"
-                  enterFrom="transform opacity-0 scale-95"
-                  enterTo="transform opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="transform opacity-100 scale-100"
-                  leaveTo="transform opacity-0 scale-95"
+                  enter="transition duration-100"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="transition duration-75"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black/5">
                     <div className="px-1 py-1">
                       <Menu.Item>
                         {({ active }) => (
@@ -284,7 +286,7 @@ export default function DashboardLayout({ usuario }) {
                             to="/perfil"
                             className={`${
                               active ? "bg-emerald-500 text-white" : "text-gray-900"
-                            } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                            } group flex items-center w-full px-2 py-2 text-sm rounded-md`}
                           >
                             <UserRound className="w-5 h-5 mr-2" />
                             Mi Perfil
@@ -292,6 +294,7 @@ export default function DashboardLayout({ usuario }) {
                         )}
                       </Menu.Item>
                     </div>
+
                     <div className="px-1 py-1">
                       <Menu.Item>
                         {({ active }) => (
@@ -299,7 +302,7 @@ export default function DashboardLayout({ usuario }) {
                             onClick={handleLogout}
                             className={`${
                               active ? "bg-emerald-500 text-white" : "text-gray-900"
-                            } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                            } group flex items-center w-full px-2 py-2 text-sm rounded-md`}
                           >
                             <LogOut className="w-5 h-5 mr-2" />
                             Cerrar sesión
@@ -314,7 +317,6 @@ export default function DashboardLayout({ usuario }) {
           </div>
         </header>
 
-        {/* CONTENIDO DE LAS PÁGINAS */}
         <main className="page">
           <Outlet />
         </main>
